@@ -1,0 +1,6 @@
+# === TEMPLATE (versionado) ===
+# Este arquivo e um modelo. Para configurar seus segredos localmente:
+#   1. Copie este arquivo para application-local.properties (mesma pasta).
+#   2. Substitua o placeholder pela sua chave real da Anthropic.
+# O application-local.properties esta no .gitignore, entao sua chave nao vaza.
+anthropic.api-key=COLE_SUA_CHAVE_ANTHROPIC_AQUI

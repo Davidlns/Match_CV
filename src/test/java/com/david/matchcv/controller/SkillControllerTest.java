@@ -1,0 +1,62 @@
+package com.david.matchcv.controller;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+
+import com.david.matchcv.exception.AiException;
+import com.david.matchcv.service.SkillExtractionService;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+@WebMvcTest(SkillController.class)
+class SkillControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private SkillExtractionService skillExtractionService;
+
+    @Test
+    void deveRetornar200EAsSkillsNoSucesso() throws Exception {
+        when(skillExtractionService.extrairSkills(anyString()))
+                .thenReturn(List.of("React", "Node.js"));
+
+        mockMvc.perform(post("/api/skills/extract")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"descricaoVaga\":\"Vaga para dev React e Node\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.skills[0]").value("React"))
+                .andExpect(jsonPath("$.skills[1]").value("Node.js"));
+    }
+
+    @Test
+    void deveRetornar400QuandoDescricaoVazia() throws Exception {
+        mockMvc.perform(post("/api/skills/extract")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"descricaoVaga\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    @Test
+    void deveRetornar503QuandoAIaFalha() throws Exception {
+        when(skillExtractionService.extrairSkills(anyString()))
+                .thenThrow(new AiException("falha", new RuntimeException()));
+
+        mockMvc.perform(post("/api/skills/extract")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"descricaoVaga\":\"qualquer coisa\"}"))
+                .andExpect(status().isServiceUnavailable());
+    }
+}
