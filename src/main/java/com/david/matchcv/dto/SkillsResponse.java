@@ -2,6 +2,8 @@ package com.david.matchcv.dto;
 
 import java.util.List;
 
-// DTO de saída: a lista de skills normalizadas extraídas da vaga.
-public record SkillsResponse(List<String> skills) {
+import com.david.matchcv.domain.SkillExtraida;
+
+// Saída da extração de uma vaga: as skills com seus tipos (obrigatória/diferencial).
+public record SkillsResponse(List<SkillExtraida> skills) {
 }

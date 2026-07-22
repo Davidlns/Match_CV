@@ -9,7 +9,9 @@ vagas e (opcionalmente) anexa o próprio currículo. A aplicação:
    por prioridade (Alta/Média/Baixa).
 2. Se houver currículo, extrai as skills dele e faz um "gap analysis":
    o que o usuário tem (match), o que falta (gap) e o que tem mas nenhuma vaga
-   pediu.
+   pediu. Também calcula uma **porcentagem de sinergia de cada vaga** com o
+   currículo (quanto das skills daquela vaga o usuário já cobre), para ele saber
+   pra quais vagas está mais pronto.
 3. Sob demanda (botão), gera um roadmap de estudo focado nos gaps.
 
 Público-alvo: comunidade de quem busca a primeira vaga. Será publicado
@@ -30,9 +32,13 @@ gratuitamente.
   persistido em disco ou banco. (Evita responsabilidade de LGPD; é ponto de
   venda: "seu currículo não é armazenado".)
 - Extração de texto do PDF do currículo no backend com Apache PDFBox.
-- Prioridade das skills é calculada no backend por regra determinística
-  (>=70% das vagas = alta; 40-69% = média; abaixo = baixa). A IA extrai e
-  normaliza; o código conta e classifica.
+- Prioridade das skills é calculada no backend por regra determinística,
+  combinando o TIPO (obrigatória/diferencial, extraído da vaga pela IA) com a
+  frequência entre vagas: ALTA se obrigatória em >=70% das vagas; senão MEDIA se
+  aparece (obrigatória ou diferencial) em >=40%; senão BAIXA. Com 1 vaga:
+  obrigatória=ALTA, diferencial=MEDIA. Se a vaga não distingue requisitos de
+  diferenciais, tudo é tratado como obrigatória. A IA extrai/normaliza/classifica
+  o tipo; o código conta e classifica a prioridade.
 - O gap analysis (cruzar skills da vaga x do CV) é lógica de conjunto em Java
   puro, sem IA.
 - Chamadas de IA separadas por etapa (extração barata x roadmap caro).
@@ -104,6 +110,9 @@ Princípios:
   clara. Bonito não pode custar usabilidade: fácil de entender de primeira.
 - **Legível e acessível** — tipografia limpa, bom contraste, responsivo.
 - **Leve e rápido** — Next.js/React bem usados; nada de travar ou pesar.
+- **Tema claro/escuro** — seletor dinâmico de modo claro/escuro na interface,
+  com o **modo escuro como padrão** (combina com a estética dev). A troca deve
+  ser suave e a preferência do usuário, lembrada.
 
 Momentos de destaque (onde caprichar no "uau"): a visualização das skills por
 prioridade (Alta/Média/Baixa) e do gap analysis (tem / falta / sobra) devem ser
@@ -160,6 +169,12 @@ fizer uma mudança relevante.**
 2. Extrair skills de 1 vaga (Haiku + saída estruturada tipada).
 3. N vagas + agregação por frequência + prioridade Alta/Média/Baixa (Java puro).
 4. Upload do CV em PDF → PDFBox em memória → skills do CV.
-5. Gap analysis (match / gap / extra) — lógica de conjunto em Java puro, sem IA.
+5. Gap analysis (match / gap / extra) + **sinergia por vaga** (% das skills de
+   cada vaga cobertas pelo CV) — lógica de conjunto em Java puro, sem IA.
 6. Roadmap de estudo sob demanda (IA; testar modelo melhor se a qualidade exigir).
+7. Experiência de vaga única (pós-núcleo): reúne o alinhamento (sinergia) com
+   AQUELA vaga, o roadmap direcionado, um feedback de como o CV se sairia num
+   filtro de currículos (ATS) e sugestões de melhoria do CV direcionadas à vaga.
+   As partes de IA (feedback ATS e sugestões) são candidatas a Sonnet
+   (geração/raciocínio de qualidade); o alinhamento é Java puro.
 * Rate limiting por IP nos endpoints de IA — encaixar após a fatia 2.

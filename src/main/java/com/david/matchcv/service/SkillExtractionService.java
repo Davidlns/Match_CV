@@ -5,6 +5,7 @@ import java.util.List;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.StructuredMessageCreateParams;
+import com.david.matchcv.domain.SkillExtraida;
 import com.david.matchcv.exception.AiException;
 
 import org.springframework.stereotype.Service;
@@ -12,19 +13,24 @@ import org.springframework.stereotype.Service;
 @Service
 public class SkillExtractionService {
 
-    // Prompt de instrução: curto e direto (economia de tokens). A normalização
-    // de nomes é crítica para o vocabulário ser consistente entre vagas e CV.
+    // Prompt curto (economia de tokens), com classificação de tipo e normalização canônica.
     private static final String INSTRUCAO = """
             Você extrai as skills técnicas de uma descrição de vaga de emprego.
             Retorne apenas skills técnicas: linguagens, frameworks, bibliotecas,
             ferramentas, bancos de dados, plataformas e práticas de engenharia.
 
+            Para cada skill, classifique o tipo:
+            - OBRIGATORIA: listada como requisito/obrigatória.
+            - DIFERENCIAL: listada como diferencial, desejável ou "nice to have".
+            Se a vaga não distingue requisitos de diferenciais, use OBRIGATORIA
+            (é requisito de contratação).
+
             Regras de normalização (CRÍTICAS: as skills serão comparadas por
             igualdade de texto entre vagas e currículos, então a grafia precisa
             ser sempre idêntica para a mesma skill):
-            - Use sempre o nome padrão da indústria de tecnologia, em inglês
-              quando esse for o uso consagrado (ex.: "Microservices",
-              "Message Queue", "Relational Databases", "Unit Testing").
+            - Use sempre o nome padrão da indústria, em inglês quando esse for o
+              uso consagrado (ex.: "Microservices", "Message Queue",
+              "Relational Databases", "Unit Testing").
             - Colapse variações para uma única forma canônica (ex.:
               "React"/"ReactJS"/"React.js" -> "React"; "Node"/"NodeJS" -> "Node.js";
               "Postgres" -> "PostgreSQL").
@@ -40,9 +46,8 @@ public class SkillExtractionService {
         this.anthropicClient = anthropicClient;
     }
 
-    public List<String> extrairSkills(String descricaoVaga) {
+    public List<SkillExtraida> extrairSkills(String descricaoVaga) {
         try {
-            // Saída estruturada: a IA preenche o record SkillsExtraidas diretamente.
             StructuredMessageCreateParams<SkillsExtraidas> params = MessageCreateParams.builder()
                     .model("claude-haiku-4-5")
                     .maxTokens(1024L)
@@ -61,6 +66,6 @@ public class SkillExtractionService {
     }
 
     // Formato tipado que a IA preenche (saída estruturada).
-    public record SkillsExtraidas(List<String> skills) {
+    public record SkillsExtraidas(List<SkillExtraida> skills) {
     }
 }

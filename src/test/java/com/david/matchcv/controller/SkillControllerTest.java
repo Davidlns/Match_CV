@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
+import com.david.matchcv.domain.SkillExtraida;
+import com.david.matchcv.domain.TipoSkill;
 import com.david.matchcv.exception.AiException;
 import com.david.matchcv.service.SkillExtractionService;
 
@@ -28,16 +30,20 @@ class SkillControllerTest {
     private SkillExtractionService skillExtractionService;
 
     @Test
-    void deveRetornar200EAsSkillsNoSucesso() throws Exception {
-        when(skillExtractionService.extrairSkills(anyString()))
-                .thenReturn(List.of("React", "Node.js"));
+    void deveRetornar200ComSkillsETiposNoSucesso() throws Exception {
+        when(skillExtractionService.extrairSkills(anyString())).thenReturn(List.of(
+                new SkillExtraida("React", TipoSkill.OBRIGATORIA),
+                new SkillExtraida("Kafka", TipoSkill.DIFERENCIAL)
+        ));
 
         mockMvc.perform(post("/api/skills/extract")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"descricaoVaga\":\"Vaga para dev React e Node\"}"))
+                        .content("{\"descricaoVaga\":\"Vaga React; Kafka e diferencial\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.skills[0]").value("React"))
-                .andExpect(jsonPath("$.skills[1]").value("Node.js"));
+                .andExpect(jsonPath("$.skills[0].nome").value("React"))
+                .andExpect(jsonPath("$.skills[0].tipo").value("OBRIGATORIA"))
+                .andExpect(jsonPath("$.skills[1].nome").value("Kafka"))
+                .andExpect(jsonPath("$.skills[1].tipo").value("DIFERENCIAL"));
     }
 
     @Test

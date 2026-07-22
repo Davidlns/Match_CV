@@ -2,6 +2,7 @@ package com.david.matchcv.controller;
 
 import java.util.List;
 
+import com.david.matchcv.domain.SkillExtraida;
 import com.david.matchcv.dto.ExtrairSkillsRequest;
 import com.david.matchcv.dto.SkillsResponse;
 import com.david.matchcv.service.SkillExtractionService;
@@ -21,10 +22,9 @@ public class SkillController {
         this.skillExtractionService = skillExtractionService;
     }
 
-    // @Valid dispara a validação do request; falha vira 400 no GlobalExceptionHandler.
     @PostMapping("/api/skills/extract")
     public SkillsResponse extrair(@Valid @RequestBody ExtrairSkillsRequest request) {
-        List<String> skills = skillExtractionService.extrairSkills(request.descricaoVaga());
+        List<SkillExtraida> skills = skillExtractionService.extrairSkills(request.descricaoVaga());
         return new SkillsResponse(skills);
     }
 }
