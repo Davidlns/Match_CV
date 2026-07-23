@@ -26,6 +26,26 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export type SkillAnalisada = {
+  nome: string;
+  frequencia: number;
+  obrigatoriaEm: number;
+  percentual: number;
+  prioridade: 'ALTA' | 'MEDIA' | 'BAIXA';
+};
+
+export type AnaliseVagasResposta = {
+  totalVagas: number;
+  skills: SkillAnalisada[];
+};
+
 export const api = {
   ping: () => request<{ reply: string }>('/api/ai/ping'),
+
+  analisarVagas: (descricoesVagas: string[]) =>
+    request<AnaliseVagasResposta>('/api/skills/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ descricoesVagas }),
+    }),
 };

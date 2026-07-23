@@ -5,7 +5,7 @@ mudança relevante for feita.** Para o contexto e as decisões fixas do projeto,
 ver `CLAUDE.md` (inclui o roadmap completo das fatias).
 
 - **Última atualização:** 2026-07-23
-- **Fatia atual:** F0 do frontend concluída (scaffold Next.js 16 + API client + ping page + testes). Próximo: **F1** — design system + tema claro/escuro.
+- **Fatia atual:** F2 do frontend concluída (entrada de vagas + visualização de skills por prioridade). Próximo: **F3** — upload do CV + gap analysis + sinergia por vaga.
 
 ## Fatias
 
@@ -68,20 +68,33 @@ ver `CLAUDE.md` (inclui o roadmap completo das fatias).
 
 ## Fatias — Frontend (`frontend/`)
 
-Backend concluído; frontend planejado e ainda **não iniciado**. Stack e decisões
-travadas (detalhe no `CLAUDE.md` → "Frontend — decisões técnicas fixas"):
-Next.js (App Router) + TypeScript, chamada **direta ao backend + CORS**,
-**Tailwind + shadcn/ui**, **Framer Motion**, testes com **Vitest + RTL** em toda
-fatia, cliente de API único com tratamento de erro central.
+Backend concluído; frontend em andamento. Stack e decisões travadas (detalhe no
+`CLAUDE.md` → "Frontend — decisões técnicas fixas"): Next.js (App Router) + TypeScript,
+chamada **direta ao backend + CORS**, **Tailwind + shadcn/ui**, **Framer Motion**,
+testes com **Vitest + RTL** em toda fatia, cliente de API único com tratamento de erro central.
 
 - [x] **F0** — Scaffold Next.js 16 (App Router + TS + Tailwind v4) em `frontend/` + fumaça (`GET /api/ai/ping` na tela com estado carregando/ok/erro).
   - **CORS no backend**: `config/CorsConfig.java` (`WebMvcConfigurer`) libera `http://localhost:3000` (configurável via `cors.allowed-origins` em `application.properties`).
   - **API client central** (`src/lib/api-client.ts`): única camada de acesso à API, traduz status HTTP + `{error}` do backend em `ApiError(status, message)`. `NEXT_PUBLIC_API_BASE_URL` para base URL. Transversal criado — amadurece a cada fatia.
   - **Stack instalada**: Next.js 16.2.11 · React 19 · Tailwind v4 · Geist fonts. Dev tools: Vitest 4 + Testing Library 16 + jsdom.
-  - Testes: `api-client.test.ts` (5 casos: sucesso, endpoint correto, ApiError com mensagem backend, mensagem genérica, campo error ausente) e `page.test.tsx` (4 casos: loading, sucesso, ApiError, erro inesperado). 9 testes, todos verdes.
+  - Testes: `api-client.test.ts` (5 casos) e `page.test.tsx` (4 casos). 9 testes, todos verdes.
   - Backend: 60 testes, sem regressão com a nova `CorsConfig`.
-- [ ] **F1** — Design system + tema claro/escuro (escuro padrão, preferência lembrada, troca suave) + primitivos base + header com identidade "de dev".
-- [ ] **F2** — Entrada de N vagas + visualização de skills por prioridade (`POST /api/skills/analyze`) — momento de destaque.
+- [x] **F1** — Design system + tema claro/escuro + header com identidade "de dev".
+  - **Paleta**: fundo `oklch(0.11)` quase-preto + acento ciano (`oklch(0.78 0.14 204)`) no modo escuro; ciano-700 no modo claro. Tokens shadcn sobrescritos em `globals.css`.
+  - **Tema**: `src/providers/ProvedorTema.tsx` — wrapper `'use client'` sobre `ThemeProvider` (next-themes): `defaultTheme="dark"`, `enableSystem={false}`, `attribute="class"`. `suppressHydrationWarning` em `<html>` para evitar mismatch de hidratação.
+  - **Header**: `src/components/layout/Cabecalho.tsx` — `> match_cv` em Geist Mono com `>` em ciano (identidade terminal), botão ghost com ícone Sol/Lua (lucide-react) que alterna o tema via `useTheme`. `aria-label` dinâmico para acessibilidade.
+  - **`globals.css`**: corrigido `--font-sans: var(--font-sans)` (auto-referência gerada pelo shadcn) → `var(--font-geist-sans)`. Transição suave no `html` (`background-color 0.2s`, `color 0.15s`). Modo escuro customizado para identidade "dev" (fundo quase-preto, border sutil via `oklch(1 0 0 / 8%)`).
+  - **`layout.tsx`**: `lang="en"` → `lang="pt-BR"`, adicionado `ProvedorTema` + `Cabecalho`, `suppressHydrationWarning`.
+  - **`page.tsx`**: aproveitou os componentes shadcn (`Card`, `CardContent`) para exibir o status do backend com design system real.
+  - Testes: `Cabecalho.test.tsx` (5 casos: renderiza nome, aria-label no escuro, aria-label no claro, toggle escuro→claro, toggle claro→escuro). 14 testes totais no frontend, todos verdes.
+- [x] **F2** — Entrada de N vagas + visualização de skills por prioridade (`POST /api/skills/analyze`) — momento de destaque.
+  - **Hook** `useAnaliseDeVagas.ts`: estado (`ocioso/analisando/pronto/erro`), lista de vagas, `adicionarVaga`/`removerVaga`/`analisar`. Remoção reseta resultado e volta ao estado ocioso.
+  - **`EntradaDeVagas.tsx`**: textarea + botão "Adicionar vaga" (Ctrl+Enter também funciona), lista de vagas com preview truncado e botão de remoção, botão "Analisar N vagas" (com ícone Sparkles) que só aparece quando há vagas.
+  - **`VisualizacaoDeSkills.tsx`**: seção com resumo (N vagas · M skills) + 3 `GrupoDeSkills`.
+  - **`GrupoDeSkills.tsx`**: card com borda esquerda colorida por prioridade (ciano/amarelo/cinza), título em mono uppercase, badges com stagger animation (Framer Motion spring). Grupos vazios não são renderizados.
+  - **`api-client.ts`**: tipos `SkillAnalisada` e `AnaliseVagasResposta` adicionados; método `api.analisarVagas()`.
+  - **`page.tsx`**: título em mono + tagline, monta `EntradaDeVagas` + `AnimatePresence` com 3 estados (carregando pulsante em ciano, erro, resultado).
+  - Testes: hook (6 casos), EntradaDeVagas (9 casos), VisualizacaoDeSkills (5 casos), api-client (2 novos), page (3 smoke tests). **37 testes, todos verdes.**
 - [ ] **F3** — Upload do CV (drag-drop PDF) + gap analysis (tem/falta/sobra) + sinergia por vaga (`POST /api/analise/completa`) — momento de destaque.
 - [ ] **F4** — Roadmap sob demanda (`POST /api/roadmap`) com render de Markdown e loading caprichado.
 - [ ] **F5** — Experiência de vaga única (`POST /api/analise/vaga-unica`): alinhamento + roadmap dirigido + card de feedback ATS.
@@ -106,8 +119,8 @@ liberando a origem do frontend. Único ajuste de backend previsto para o fronten
 
 O repositório é um **monorepo**: a raiz guarda o comum (`CLAUDE.md`, `PROGRESS.md`,
 `.gitignore`, `.gitattributes`) e cada app vive em sua subpasta. O backend Spring
-está em `backend/`; o `frontend/` (Next.js) ainda não foi criado. Todos os caminhos
-Java abaixo são relativos a `backend/`.
+está em `backend/`; o frontend Next.js em `frontend/`. Todos os caminhos Java
+abaixo são relativos a `backend/`.
 
 ```
 backend/src/main/java/com/david/matchcv/

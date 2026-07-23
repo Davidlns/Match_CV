@@ -1,62 +1,41 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import HomePage from './page';
-import { ApiError } from '@/lib/api-client';
+
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+      <div {...props}>{children}</div>
+    ),
+    p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+      <p {...props}>{children}</p>
+    ),
+  },
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
 
 vi.mock('@/lib/api-client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api-client')>();
-  return {
-    ...actual,
-    api: { ping: vi.fn() },
-  };
-});
-
-// Importado após o mock para obter a versão mockada.
-const { api } = await import('@/lib/api-client');
-const mockPing = vi.mocked(api.ping);
-
-afterEach(() => {
-  vi.clearAllMocks();
+  return { ...actual, api: { ...actual.api, analisarVagas: vi.fn() } };
 });
 
 describe('HomePage', () => {
-  it('exibe estado de carregamento enquanto a chamada está pendente', () => {
-    mockPing.mockReturnValue(new Promise(() => {}));
-
+  it('renderiza o título e o textarea de entrada de vagas', () => {
     render(<HomePage />);
 
-    expect(
-      screen.getByText(/conectando ao backend/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/analise suas vagas/i)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /descrição da vaga/i })).toBeInTheDocument();
   });
 
-  it('exibe a resposta do backend após sucesso', async () => {
-    mockPing.mockResolvedValueOnce({ reply: 'pong' });
-
+  it('exibe o botão de adicionar vaga', () => {
     render(<HomePage />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/pong/i)).toBeInTheDocument();
-    });
+    expect(screen.getByRole('button', { name: /adicionar vaga/i })).toBeInTheDocument();
   });
 
-  it('exibe mensagem de erro em caso de ApiError', async () => {
-    mockPing.mockRejectedValueOnce(new ApiError(503, 'Serviço indisponível.'));
-
+  it('não exibe o botão de analisar antes de adicionar vagas', () => {
     render(<HomePage />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/serviço indisponível/i)).toBeInTheDocument();
-    });
-  });
-
-  it('exibe mensagem genérica para erros inesperados', async () => {
-    mockPing.mockRejectedValueOnce(new Error('falha de rede'));
-
-    render(<HomePage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/falha inesperada/i)).toBeInTheDocument();
-    });
+    expect(screen.queryByRole('button', { name: /analisar/i })).not.toBeInTheDocument();
   });
 });

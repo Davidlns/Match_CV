@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { api, ApiError } from './api-client';
+import { api } from './api-client';
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -83,6 +83,37 @@ describe('api-client', () => {
         status: 400,
         message: 'Erro inesperado.',
       });
+    });
+  });
+
+  describe('api.analisarVagas', () => {
+    it('faz POST para /api/skills/analyze com as descrições das vagas', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ totalVagas: 1, skills: [] }),
+      });
+
+      await api.analisarVagas(['Descrição da vaga aqui']);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/skills/analyze'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ descricoesVagas: ['Descrição da vaga aqui'] }),
+        }),
+      );
+    });
+
+    it('retorna a resposta de análise em sucesso', async () => {
+      const resposta = {
+        totalVagas: 1,
+        skills: [{ nome: 'Java', frequencia: 1, obrigatoriaEm: 1, percentual: 100, prioridade: 'ALTA' }],
+      };
+      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => resposta });
+
+      const resultado = await api.analisarVagas(['Vaga Java']);
+
+      expect(resultado).toEqual(resposta);
     });
   });
 });
