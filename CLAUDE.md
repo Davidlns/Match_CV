@@ -122,6 +122,58 @@ Escopo: decisões finas (paleta exata, fontes, biblioteca de componentes/animaç
 ficam para a fase de frontend — construímos o backend primeiro. Este bloco é a
 direção, não a especificação final.
 
+## Frontend — decisões técnicas fixas (não reabrir sem eu pedir)
+
+Travadas ao iniciar a fase de frontend. A direção de UX acima continua valendo;
+estas são as escolhas de ferramenta que a implementavam.
+
+- **Stack:** Next.js (App Router) + React + TypeScript, na subpasta `frontend/`.
+  Só consome a API do backend (decisão fixa: nada de IA nem segredos no cliente).
+- **Integração front↔back: chamada direta + CORS.** O browser chama o Spring
+  diretamente (`http://localhost:8080` em dev). O backend expõe uma config de
+  CORS liberando a origem do front. Escolhido em vez de um BFF/proxy no Next
+  porque preserva o **IP real do usuário** — o rate limiting do backend é por IP
+  (um proxy colapsaria todos num IP só, salvo repasse cuidadoso de
+  `X-Forwarded-For`). Base URL da API via variável de ambiente
+  (`NEXT_PUBLIC_API_BASE_URL`).
+- **Estilo e componentes: Tailwind CSS + shadcn/ui.** Componentes são copiados
+  para o nosso código (somos donos e customizamos), fugindo da cara genérica de
+  template e do "AI slop".
+- **Animação: Framer Motion (Motion).** Para as micro-interações e transições
+  ("interativo e vivo", loading com personalidade).
+- **Testes: Vitest + React Testing Library, em toda fatia.** Mesma régua do
+  backend — uma fatia de front não está pronta sem testes de componente/lógica.
+- **Cliente de API único + tratamento de erro central.** Uma camada de acesso à
+  API traduz status HTTP + corpo `{"error": "..."}` do backend em mensagens de
+  UI (429 rate limit, 503 IA indisponível, 400 validação/PDF). Sem `fetch` solto
+  espalhado; error boundaries para falhas inesperadas.
+- **Acessibilidade e responsividade** são requisito permanente de cada fatia, não
+  uma etapa final.
+
+## Frontend — organização e granularidade (obrigatório)
+
+- **Um componente por arquivo.** Nada de vários componentes empilhados
+  no mesmo arquivo.
+- **Componentes pequenos.** Se um arquivo passa de ~150 linhas, é sinal
+  de que precisa ser quebrado. Extrair subcomponentes e hooks. (O limite
+  é um gatilho de revisão, não uma lei — 160 linhas num componente coeso
+  é melhor que quebrar artificialmente.)
+- **Lógica fora do componente.** Chamadas de API, transformação de dados
+  e estado complexo vivem em hooks ou módulos próprios — o componente
+  cuida de renderizar.
+- **Sem CSS gigante.** Estilo via Tailwind nas classes; CSS global só
+  para tokens e reset. Nada de arquivos `.css` longos por componente.
+- **Sem duplicação de markup.** Se um bloco visual aparece duas vezes,
+  vira componente.
+- **Convenção de idioma:** todo o código deste projeto usa **português**
+  para identificadores — nomes de classes, métodos, variáveis, rotas e
+  propriedades de resposta. Exceções aceitáveis: termos técnicos
+  consagrados em inglês na indústria sem tradução natural (ex.: `fetch`,
+  sufixos de padrão como `Controller`, `Service`, `Hook`). A
+  inconsistência do backend (`AnalysisController` × `AnaliseController`)
+  é um legado que não vale refatorar agora, mas não deve se repetir —
+  qualquer código novo segue português.
+
 ## Fora de escopo no MVP (fica pra v2)
 
 - Login / contas de usuário.
@@ -182,13 +234,15 @@ nem "pra depois":
 Motivo: o projeto é aprendizado de Spring E peça de portfólio; qualidade,
 testes e robustez são parte do valor, não um extra.
 
-## Roadmap de fatias (verticais)
+## Roadmap de fatias (verticais) — Backend
 
 Cada fatia sobe ponta a ponta — com testes e tratamento de erro — antes da
 próxima. O **estado atual** (qual fatia foi concluída, onde estamos, decisões já
 tomadas) é rastreado em `PROGRESS.md` na raiz do projeto. **Consulte o
 PROGRESS.md ao começar uma sessão e atualize-o sempre que concluir uma fatia ou
 fizer uma mudança relevante.**
+
+**Todas as fatias de backend (0–7 + rate limiting) estão concluídas.**
 
 0. `GET /api/hello` — app sobe e responde JSON (fumaça).
 1. Config da chave (env) + `AnthropicClient` + ping na IA (`GET /api/ai/ping`).
@@ -204,3 +258,35 @@ fizer uma mudança relevante.**
    As partes de IA (feedback ATS e sugestões) são candidatas a Sonnet
    (geração/raciocínio de qualidade); o alinhamento é Java puro.
 * Rate limiting por IP nos endpoints de IA — encaixar após a fatia 2.
+
+## Roadmap de fatias (verticais) — Frontend
+
+Mesma filosofia do backend: cada fatia sobe ponta a ponta (input → API → algo
+visível funcionando), com testes (Vitest + RTL) e tratamento de erro. Consome os
+endpoints já prontos do backend. Estado rastreado no mesmo `PROGRESS.md`.
+
+0. **Scaffold + fumaça** — criar `frontend/` (Next App Router + TS), shell de
+   layout, e provar o encaixe chamando `GET /api/ai/ping` e exibindo o resultado.
+   Inclui a config de **CORS no backend** liberando a origem do front.
+1. **Design system + tema claro/escuro** — tokens (paleta, tipografia com acento
+   monoespaçado), theme provider com **escuro padrão** + seletor com preferência
+   lembrada e troca suave, primitivos base (Button, Card, Input, Textarea) e
+   header com identidade "de dev".
+2. **Entrada de vagas + skills por prioridade** — colar N vagas
+   (adicionar/remover), `POST /api/skills/analyze`, e a **visualização de skills
+   por prioridade** (Alta/Média/Baixa) — momento de destaque, visual e não tabela.
+   Loading com personalidade.
+3. **Upload do CV + gap analysis + sinergia** — drag-drop de PDF, troca para
+   `POST /api/analise/completa`, e o **gap analysis** (tem/falta/sobra) + sinergia
+   por vaga — o outro momento de destaque. Reforço do "seu CV não é armazenado".
+4. **Roadmap sob demanda** — botão que chama `POST /api/roadmap` com as skills do
+   gap e renderiza o Markdown, com estado de espera caprichado (Sonnet é lento).
+5. **Experiência de vaga única** — rota dedicada consumindo
+   `POST /api/analise/vaga-unica`: alinhamento + roadmap dirigido + card de
+   feedback ATS (pontuação, favoráveis, pontos de atenção com categoria/impacto,
+   ações prioritárias).
+6. **Polimento** — responsividade mobile, passe de acessibilidade
+   (contraste/foco/aria), micro-interações finais, estados de erro/vazio (incl.
+   429/503) bem apresentados, performance.
+* **Transversal** — cliente de API + tratamento de erro central: encaixa já na
+  fatia 0 e amadurece a cada fatia (como o exception handler no backend).

@@ -5,7 +5,7 @@ mudança relevante for feita.** Para o contexto e as decisões fixas do projeto,
 ver `CLAUDE.md` (inclui o roadmap completo das fatias).
 
 - **Última atualização:** 2026-07-23
-- **Fatia atual:** Fatia 7 concluída → **todas as fatias do MVP de backend concluídas**. Repositório reestruturado como **monorepo** (backend Spring movido para `backend/`). Próximo: frontend (Next.js) em `frontend/`.
+- **Fatia atual:** F0 do frontend concluída (scaffold Next.js 16 + API client + ping page + testes). Próximo: **F1** — design system + tema claro/escuro.
 
 ## Fatias
 
@@ -65,6 +65,31 @@ ver `CLAUDE.md` (inclui o roadmap completo das fatias).
   - Implementação em memória (`ConcurrentHashMap`) — suficiente para MVP. Nota no código: em produção multi-instância, substituir por Redis + Bucket4j.
   - Por ser `@Component Filter`, o Spring Boot carrega automaticamente em `@WebMvcTest` sem quebrar nenhum teste existente (cada classe tem contexto isolado; max 4 req/classe < 20 limite).
   - Testes: `RateLimitFilterTest` (6 casos: passa até o limite, bloqueia no limite+1, sem limite em endpoints livres, X-Forwarded-For, isolamento por IP, cobertura de todos os endpoints de IA). Suíte verde (49 testes).
+
+## Fatias — Frontend (`frontend/`)
+
+Backend concluído; frontend planejado e ainda **não iniciado**. Stack e decisões
+travadas (detalhe no `CLAUDE.md` → "Frontend — decisões técnicas fixas"):
+Next.js (App Router) + TypeScript, chamada **direta ao backend + CORS**,
+**Tailwind + shadcn/ui**, **Framer Motion**, testes com **Vitest + RTL** em toda
+fatia, cliente de API único com tratamento de erro central.
+
+- [x] **F0** — Scaffold Next.js 16 (App Router + TS + Tailwind v4) em `frontend/` + fumaça (`GET /api/ai/ping` na tela com estado carregando/ok/erro).
+  - **CORS no backend**: `config/CorsConfig.java` (`WebMvcConfigurer`) libera `http://localhost:3000` (configurável via `cors.allowed-origins` em `application.properties`).
+  - **API client central** (`src/lib/api-client.ts`): única camada de acesso à API, traduz status HTTP + `{error}` do backend em `ApiError(status, message)`. `NEXT_PUBLIC_API_BASE_URL` para base URL. Transversal criado — amadurece a cada fatia.
+  - **Stack instalada**: Next.js 16.2.11 · React 19 · Tailwind v4 · Geist fonts. Dev tools: Vitest 4 + Testing Library 16 + jsdom.
+  - Testes: `api-client.test.ts` (5 casos: sucesso, endpoint correto, ApiError com mensagem backend, mensagem genérica, campo error ausente) e `page.test.tsx` (4 casos: loading, sucesso, ApiError, erro inesperado). 9 testes, todos verdes.
+  - Backend: 60 testes, sem regressão com a nova `CorsConfig`.
+- [ ] **F1** — Design system + tema claro/escuro (escuro padrão, preferência lembrada, troca suave) + primitivos base + header com identidade "de dev".
+- [ ] **F2** — Entrada de N vagas + visualização de skills por prioridade (`POST /api/skills/analyze`) — momento de destaque.
+- [ ] **F3** — Upload do CV (drag-drop PDF) + gap analysis (tem/falta/sobra) + sinergia por vaga (`POST /api/analise/completa`) — momento de destaque.
+- [ ] **F4** — Roadmap sob demanda (`POST /api/roadmap`) com render de Markdown e loading caprichado.
+- [ ] **F5** — Experiência de vaga única (`POST /api/analise/vaga-unica`): alinhamento + roadmap dirigido + card de feedback ATS.
+- [ ] **F6** — Polimento: responsividade, acessibilidade, micro-interações, estados de erro/vazio (429/503), performance.
+- [ ] **Transversal** — cliente de API + tratamento de erro central (encaixa na F0, amadurece a cada fatia).
+
+**Mudança pendente no backend (nasce na F0 do front):** adicionar config de CORS
+liberando a origem do frontend. Único ajuste de backend previsto para o frontend.
 
 ## Decisões técnicas já tomadas
 
