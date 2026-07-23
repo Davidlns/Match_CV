@@ -4,8 +4,8 @@ Estado atual do projeto. **Atualizar sempre que uma fatia for concluída ou uma
 mudança relevante for feita.** Para o contexto e as decisões fixas do projeto,
 ver `CLAUDE.md` (inclui o roadmap completo das fatias).
 
-- **Última atualização:** 2026-07-22
-- **Fatia atual:** Fatia 7 concluída → **todas as fatias do MVP de backend concluídas**. Próximo: frontend (Next.js).
+- **Última atualização:** 2026-07-23
+- **Fatia atual:** Fatia 7 concluída → **todas as fatias do MVP de backend concluídas**. Repositório reestruturado como **monorepo** (backend Spring movido para `backend/`). Próximo: frontend (Next.js) em `frontend/`.
 
 ## Fatias
 
@@ -79,8 +79,13 @@ ver `CLAUDE.md` (inclui o roadmap completo das fatias).
 
 ## Estrutura atual (arquivos-chave)
 
+O repositório é um **monorepo**: a raiz guarda o comum (`CLAUDE.md`, `PROGRESS.md`,
+`.gitignore`, `.gitattributes`) e cada app vive em sua subpasta. O backend Spring
+está em `backend/`; o `frontend/` (Next.js) ainda não foi criado. Todos os caminhos
+Java abaixo são relativos a `backend/`.
+
 ```
-src/main/java/com/david/matchcv/
+backend/src/main/java/com/david/matchcv/
 ├── MatchCvApplication.java
 ├── config/AnthropicConfig.java
 ├── controller/HelloController.java, AiPingController.java, SkillController.java, AnalysisController.java, CvController.java, AnaliseController.java, VagaUnicaController.java
@@ -90,7 +95,7 @@ src/main/java/com/david/matchcv/
 ├── filter/RateLimitFilter.java
 └── exception/AiException.java, InvalidPdfException.java, GlobalExceptionHandler.java
 
-src/test/java/com/david/matchcv/
+backend/src/test/java/com/david/matchcv/
 ├── MatchCvApplicationTests.java
 ├── controller/AiPingControllerTest.java, SkillControllerTest.java, AnalysisControllerTest.java, CvControllerTest.java, AnaliseControllerTest.java, RoadmapControllerTest.java, VagaUnicaControllerTest.java
 ├── domain/SkillPriorityCalculatorTest.java, GapAnalyzerTest.java
@@ -100,11 +105,14 @@ src/test/java/com/david/matchcv/
 
 ## Como rodar / testar
 
-1. Copie `src/main/resources/application-local.properties.example` para
+O backend roda a partir da pasta `backend/` (onde ficam o `pom.xml` e o wrapper).
+
+1. Copie `backend/src/main/resources/application-local.properties.example` para
    `application-local.properties` (mesma pasta) e cole sua chave no lugar do placeholder.
-2. Rode:
+2. Rode a partir de `backend/`:
 
 ```powershell
+cd backend
 .\mvnw.cmd spring-boot:run   # sobe a app (porta 8080)
 .\mvnw.cmd test              # roda a suite de testes
 ```

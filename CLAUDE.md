@@ -128,6 +128,32 @@ direção, não a especificação final.
 - Persistência (banco, histórico de análises).
 - Exportar roadmap em PDF.
 
+## Estrutura do repositório (monorepo)
+
+O projeto é um monorepo. A raiz guarda apenas o que é comum ao repositório
+inteiro; cada aplicação vive na sua subpasta:
+
+```
+Match_CV/                 # raiz do repositório
+├── CLAUDE.md             # instruções do projeto (backend + frontend)
+├── PROGRESS.md           # rastreio de progresso geral
+├── .gitignore            # ignore único, cobre o monorepo todo
+├── .gitattributes        # atributos do repo (eol do mvnw etc.)
+├── backend/              # aplicação Spring Boot (pom.xml, mvnw, src/)
+└── frontend/             # aplicação Next.js (ainda não criada)
+```
+
+O backend roda a partir de `backend/` (é onde estão o `pom.xml` e o wrapper):
+
+```powershell
+cd backend
+.\mvnw.cmd spring-boot:run   # sobe a app (porta 8080)
+.\mvnw.cmd test              # roda a suíte
+```
+
+A chave da Anthropic continua em `backend/src/main/resources/application-local.properties`
+(fora do Git). O frontend, quando existir, só consome a API do backend.
+
 ## Como trabalhamos
 
 - Construção em fatias verticais, uma de cada vez, cada fatia funcionando ponta

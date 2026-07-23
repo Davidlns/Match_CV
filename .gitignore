@@ -1,7 +1,7 @@
 
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+backend/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -36,4 +36,4 @@ build/
 ### Segredos locais (NUNCA versionar) ###
 # Arquivo com a chave da Anthropic e outros segredos de desenvolvimento.
 application-local.properties
-src/main/resources/application-local.properties
+backend/src/main/resources/application-local.properties
