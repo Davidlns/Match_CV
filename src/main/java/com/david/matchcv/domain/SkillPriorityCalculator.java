@@ -62,7 +62,7 @@ public class SkillPriorityCalculator {
         int percentualObrigatoria = (c.obrigatoriaEm * 100) / totalVagas;
         int percentualPresenca = (c.frequencia * 100) / totalVagas;
         Prioridade prioridade = classificar(percentualObrigatoria, percentualPresenca);
-        return new SkillPrioridade(nome, c.frequencia, c.obrigatoriaEm, prioridade);
+        return new SkillPrioridade(nome, c.frequencia, c.obrigatoriaEm, percentualPresenca, prioridade);
     }
 
     private Prioridade classificar(int percentualObrigatoria, int percentualPresenca) {

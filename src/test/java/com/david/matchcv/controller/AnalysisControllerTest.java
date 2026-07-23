@@ -32,7 +32,7 @@ class AnalysisControllerTest {
     @Test
     void deveRetornar200ComAnaliseNoSucesso() throws Exception {
         when(vagaAnalysisService.analisar(anyList())).thenReturn(List.of(
-                new SkillPrioridade("Java", 2, 2, Prioridade.ALTA)
+                new SkillPrioridade("Java", 2, 2, 100, Prioridade.ALTA)
         ));
 
         mockMvc.perform(post("/api/skills/analyze")
@@ -42,13 +42,14 @@ class AnalysisControllerTest {
                 .andExpect(jsonPath("$.totalVagas").value(2))
                 .andExpect(jsonPath("$.skills[0].nome").value("Java"))
                 .andExpect(jsonPath("$.skills[0].obrigatoriaEm").value(2))
+                .andExpect(jsonPath("$.skills[0].percentual").value(100))
                 .andExpect(jsonPath("$.skills[0].prioridade").value("ALTA"));
     }
 
     @Test
     void deveFuncionarComUmaVaga() throws Exception {
         when(vagaAnalysisService.analisar(anyList())).thenReturn(List.of(
-                new SkillPrioridade("Java", 1, 1, Prioridade.ALTA)
+                new SkillPrioridade("Java", 1, 1, 100, Prioridade.ALTA)
         ));
 
         mockMvc.perform(post("/api/skills/analyze")

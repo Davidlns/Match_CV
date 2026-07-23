@@ -36,8 +36,8 @@ class VagaAnalysisServiceTest {
 
         // Java: obrigatória em 2/2 (100%) -> ALTA. Docker: presente em 1/2 (50%) -> MEDIA.
         assertThat(resultado).containsExactly(
-                new SkillPrioridade("Java", 2, 2, Prioridade.ALTA),
-                new SkillPrioridade("Docker", 1, 0, Prioridade.MEDIA)
+                new SkillPrioridade("Java", 2, 2, 100, Prioridade.ALTA),
+                new SkillPrioridade("Docker", 1, 0, 50, Prioridade.MEDIA)
         );
     }
 

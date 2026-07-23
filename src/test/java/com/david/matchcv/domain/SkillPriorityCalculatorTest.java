@@ -28,10 +28,10 @@ class SkillPriorityCalculatorTest {
         // Docker: presente em 2/3 (66%), obrigatória em 1/3 (33%) -> MEDIA.
         // Kafka: presente em 1/3 (33%) -> BAIXA.  Kubernetes: obrigatória em 1/3 (33%) -> BAIXA.
         assertThat(resultado).containsExactly(
-                new SkillPrioridade("Java", 3, 3, Prioridade.ALTA),
-                new SkillPrioridade("Docker", 2, 1, Prioridade.MEDIA),
-                new SkillPrioridade("Kafka", 1, 0, Prioridade.BAIXA),
-                new SkillPrioridade("Kubernetes", 1, 1, Prioridade.BAIXA)
+                new SkillPrioridade("Java", 3, 3, 100, Prioridade.ALTA),
+                new SkillPrioridade("Docker", 2, 1, 66, Prioridade.MEDIA),
+                new SkillPrioridade("Kafka", 1, 0, 33, Prioridade.BAIXA),
+                new SkillPrioridade("Kubernetes", 1, 1, 33, Prioridade.BAIXA)
         );
     }
 
@@ -43,10 +43,10 @@ class SkillPriorityCalculatorTest {
 
         List<SkillPrioridade> resultado = calculator.calcular(skillsPorVaga);
 
-        // Com 1 vaga: obrigatória -> ALTA; diferencial -> MEDIA.
+        // Com 1 vaga: presença 100% para ambos; obrigatória -> ALTA, diferencial -> MEDIA.
         assertThat(resultado).containsExactly(
-                new SkillPrioridade("Java", 1, 1, Prioridade.ALTA),
-                new SkillPrioridade("Kafka", 1, 0, Prioridade.MEDIA)
+                new SkillPrioridade("Java", 1, 1, 100, Prioridade.ALTA),
+                new SkillPrioridade("Kafka", 1, 0, 100, Prioridade.MEDIA)
         );
     }
 
@@ -61,7 +61,7 @@ class SkillPriorityCalculatorTest {
         List<SkillPrioridade> resultado = calculator.calcular(skillsPorVaga);
 
         assertThat(resultado).containsExactly(
-                new SkillPrioridade("Java", 2, 2, Prioridade.ALTA)
+                new SkillPrioridade("Java", 2, 2, 100, Prioridade.ALTA)
         );
     }
 

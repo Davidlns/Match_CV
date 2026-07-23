@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * Tratamento centralizado de exceções. Nenhum controller precisa de try/catch:
@@ -41,5 +42,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", mensagem));
+    }
+
+    @ExceptionHandler(InvalidPdfException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidPdf(InvalidPdfException ex) {
+        // PDF ausente, corrompido ou com formato inválido → 400.
+        log.warn("PDF inválido: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, String>> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", "O arquivo excede o tamanho máximo permitido (10 MB)."));
     }
 }

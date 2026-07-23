@@ -1,11 +1,11 @@
-# PROGRESS — Match_CV
+/# PROGRESS — Match_CV
 
 Estado atual do projeto. **Atualizar sempre que uma fatia for concluída ou uma
 mudança relevante for feita.** Para o contexto e as decisões fixas do projeto,
 ver `CLAUDE.md` (inclui o roadmap completo das fatias).
 
 - **Última atualização:** 2026-07-22
-- **Fatia atual:** Fatia 3 concluída → **próxima: Fatia 4** (upload do CV em PDF + PDFBox).
+- **Fatia atual:** Fatia 7 concluída → **todas as fatias do MVP de backend concluídas**. Próximo: frontend (Next.js).
 
 ## Fatias
 
@@ -22,16 +22,49 @@ ver `CLAUDE.md` (inclui o roadmap completo das fatias).
   - Dependência nova: `spring-boot-starter-validation`.
   - Testes: `SkillControllerTest` (200/400/503) e `SkillExtractionServiceTest` (falha → `AiException`). Suíte verde (9 testes).
 - [x] **Fatia 3** — N vagas → agregação → prioridade (por **tipo + frequência**):
-  - `POST /api/skills/analyze` recebe `{"descricoesVagas": [...]}` e devolve `{"totalVagas": N, "skills": [{nome, frequencia, obrigatoriaEm, prioridade}]}`.
+  - `POST /api/skills/analyze` recebe `{"descricoesVagas": [...]}` e devolve `{"totalVagas": N, "skills": [{nome, frequencia, obrigatoriaEm, percentual, prioridade}]}` (`percentual` = % de vagas em que aparece, pronto para o front visualizar).
   - **Prioridade:** ALTA se obrigatória em ≥70% das vagas; senão MEDIA se aparece em ≥40%; senão BAIXA. Funciona com 1 vaga (obrigatória→ALTA, diferencial→MEDIA). Sem `priorizacaoAplicavel` (o tipo torna a prioridade sempre significativa).
   - `domain/SkillPriorityCalculator` (Java puro, `@Component`): agrega frequência e obrigatoriedade por skill e classifica. Enum `Prioridade`, record `SkillPrioridade`.
   - `service/VagaAnalysisService` orquestra: extrai skills (com tipo) de cada vaga (reusa Fatia 2) → calcula.
   - DTOs `AnalisarVagasRequest` (`@NotEmpty` + itens `@NotBlank`) e `AnaliseVagasResponse`.
   - Testes: `SkillPriorityCalculatorTest` (4, lógica pura), `VagaAnalysisServiceTest` (2), `AnalysisControllerTest` (4). Suíte verde (19 testes).
-- [ ] **Fatia 4** — Upload do CV em PDF → PDFBox em memória → skills do CV.
-- [ ] **Fatia 5** — Gap analysis (match / gap / extra) — lógica de conjunto em Java puro.
-- [ ] **Fatia 6** — Roadmap de estudo sob demanda (IA).
-- [ ] **Transversal** — Rate limiting por IP nos endpoints de IA (após a Fatia 2).
+- [x] **Fatia 4** — Upload do CV em PDF → PDFBox em memória → skills do CV (validada com testes).
+  - `POST /api/cv/extract` recebe `multipart/form-data` (campo `arquivo`) e devolve `{"skills": [{nome, tipo}]}`.
+  - `service/PdfTextExtractor` usa PDFBox 3.0.3 (`Loader.loadPDF(byte[])`) — tudo em memória, nunca grava em disco (LGPD).
+  - `service/CvAnalysisService` valida arquivo vazio e orquestra PdfTextExtractor → SkillExtractionService (reutiliza Fatia 2 para garantir vocabulário canônico consistente entre vagas e CV).
+  - `exception/InvalidPdfException` + handler no `GlobalExceptionHandler` → 400. Handler para `MaxUploadSizeExceededException` → 400 ("excede 10 MB").
+  - Limite de upload configurado: `spring.servlet.multipart.max-file-size=10MB`.
+  - Dependência nova: `org.apache.pdfbox:pdfbox:3.0.3`.
+  - Testes: `CvAnalysisServiceTest` (3 casos) e `CvControllerTest` (3 casos). Suíte verde (25 testes).
+- [x] **Fatia 5** — Gap analysis (match / gap / extra) + sinergia por vaga (validada com testes).
+  - `POST /api/analise/completa` recebe `multipart/form-data` com `arquivo` (PDF) e `descricoesVagas[]`.
+  - Resposta: `{totalVagas, skillsAgregadas, match, gap, extra, sinergiaMedia, vagasComSinergia}`.
+  - `domain/GapAnalyzer` (Java puro): compara CV × vagas com case-insensitive matching; calcula `match`/`gap`/`extra` e sinergia por vaga (% das skills da vaga cobertas pelo CV) + média.
+  - `domain/SinergiaVaga` e `domain/ResultadoGap`: tipos de domínio do gap analysis.
+  - `service/AnaliseCompletaService`: orquestra as 4 etapas — extração por vaga (IA), agregação (Java puro), extração do CV (IA, mesmo prompt → vocabulário consistente), gap analysis (Java puro).
+  - `controller/AnaliseController`: thin controller, param ausente → 400 automático do Spring.
+  - Testes: `GapAnalyzerTest` (5 casos), `AnaliseCompletaServiceTest` (3), `AnaliseControllerTest` (4). Suíte verde (37 testes).
+- [x] **Fatia 6** — Roadmap de estudo sob demanda (IA; Sonnet 4.6).
+  - `POST /api/roadmap` recebe `{"skills": [{nome, prioridade}]}` e devolve `{"roadmap": "...markdown..."}`.
+  - `service/RoadmapService`: chama Sonnet 4.6 (`claude-sonnet-4-6`, `max_tokens=2048`). Monta a entrada agrupada por prioridade (ALTA/MÉDIA/BAIXA) para o modelo priorizar o que importa nas vagas. Prompt curto e direto — pede fases sequenciais com pré-requisitos, 1 recurso gratuito e 1 projeto prático por skill.
+  - `dto/GerarRoadmapRequest` (`@NotEmpty` + itens `@Valid @NotBlank`), `dto/SkillParaAprender`, `dto/RoadmapResponse`.
+  - Modelo escolhido: Sonnet 4.6 (geração/síntese personalizada — raciocínio real para ordenar dependências de aprendizado). Haiku não é candidato para esta tarefa (CLAUDE.md).
+  - Testes: `RoadmapServiceTest` (2 casos: sucesso + falha), `RoadmapControllerTest` (4 casos: 200/400 lista vazia/400 nome vazio/503). Suíte verde (43 testes).
+- [x] **Fatia 7** — Experiência de vaga única: análise focada em uma vaga específica + feedback ATS + roadmap direcionado.
+  - `POST /api/analise/vaga-unica` recebe `multipart/form-data` com `arquivo` (PDF) e `descricaoVaga` e devolve `{sinergia, match, gap, extra, roadmapDirecionado, feedbackAts}`.
+  - **Uma única chamada ao Sonnet 4.6** (economia de tokens): `VagaUnicaAiAnalyzer` gera roadmap + feedback ATS em conjunto via saída estruturada (`ResultadoIa{roadmapDirecionado, FeedbackAts}`).
+  - `FeedbackAts`: `pontuacaoEstimada` (0–100, honesto), `pontosFavoraveis` (o que funciona bem), `pontosDeAtencao` (lista de `PontoDeAtencao{categoria, descricao, impacto}`) e `acoesPrioritarias` (max 5). Prompt instrui explicitamente: **não fabricar sugestões se o CV já está forte** — lista vazia é um elogio.
+  - Enums de domínio: `CategoriaAtencao` (FORMATO/KEYWORDS/CONTEUDO/ESTRUTURA) e `ImpactoAtencao` (ALTO/MEDIO/BAIXO).
+  - `AnaliseVagaUnicaService`: injeta `PdfTextExtractor` + `SkillExtractionService` diretamente (não `CvAnalysisService`) para obter texto bruto do CV (necessário para o ATS) **e** skills do CV em uma única leitura do PDF. Reutiliza `GapAnalyzer` (Java puro) para sinergia/match/gap.
+  - Sinergia por vaga única via `GapAnalyzer.analisar(List.of(skillsVaga), skillsDoCv).sinergiaMedia()`.
+  - Rate limiting aplicado automaticamente (URI começa com `/api/analise/`).
+  - Testes: `VagaUnicaAiAnalyzerTest` (2: falha SDK → AiException; AiException repassa sem embrulhar), `AnaliseVagaUnicaServiceTest` (5: orquestração OK, sinergia 100%, PDF inválido, falha IA, arquivo vazio), `VagaUnicaControllerTest` (4: 200/400 param ausente/400 PDF inválido/503). Suíte verde (60 testes).
+- [x] **Transversal** — Rate limiting por IP nos endpoints de IA.
+  - `filter/RateLimitFilter` (`@Component`, `@Order(1)`): janela fixa de 1 minuto, 20 req/IP. Reseta com double-checked locking. Cobre `/api/skills/*`, `/api/cv/*`, `/api/analise/*`, `/api/roadmap`, `/api/ai/ping`. Responde 429 com `{"error":"..."}` antes de chegar ao controller.
+  - IP identificado via `X-Forwarded-For` (proxy/load balancer); fallback para `remoteAddr`.
+  - Implementação em memória (`ConcurrentHashMap`) — suficiente para MVP. Nota no código: em produção multi-instância, substituir por Redis + Bucket4j.
+  - Por ser `@Component Filter`, o Spring Boot carrega automaticamente em `@WebMvcTest` sem quebrar nenhum teste existente (cada classe tem contexto isolado; max 4 req/classe < 20 limite).
+  - Testes: `RateLimitFilterTest` (6 casos: passa até o limite, bloqueia no limite+1, sem limite em endpoints livres, X-Forwarded-For, isolamento por IP, cobertura de todos os endpoints de IA). Suíte verde (49 testes).
 
 ## Decisões técnicas já tomadas
 
@@ -50,17 +83,19 @@ ver `CLAUDE.md` (inclui o roadmap completo das fatias).
 src/main/java/com/david/matchcv/
 ├── MatchCvApplication.java
 ├── config/AnthropicConfig.java
-├── controller/HelloController.java, AiPingController.java, SkillController.java, AnalysisController.java
-├── service/AiPingService.java, SkillExtractionService.java, VagaAnalysisService.java
-├── domain/Prioridade.java, TipoSkill.java, SkillExtraida.java, SkillPrioridade.java, SkillPriorityCalculator.java
-├── dto/ExtrairSkillsRequest.java, SkillsResponse.java, AnalisarVagasRequest.java, AnaliseVagasResponse.java
-└── exception/AiException.java, GlobalExceptionHandler.java
+├── controller/HelloController.java, AiPingController.java, SkillController.java, AnalysisController.java, CvController.java, AnaliseController.java, VagaUnicaController.java
+├── service/AiPingService.java, SkillExtractionService.java, VagaAnalysisService.java, PdfTextExtractor.java, CvAnalysisService.java, AnaliseCompletaService.java, RoadmapService.java, VagaUnicaAiAnalyzer.java, AnaliseVagaUnicaService.java
+├── domain/Prioridade.java, TipoSkill.java, SkillExtraida.java, SkillPrioridade.java, SkillPriorityCalculator.java, SinergiaVaga.java, ResultadoGap.java, GapAnalyzer.java, ImpactoAtencao.java, CategoriaAtencao.java, PontoDeAtencao.java, FeedbackAts.java
+├── dto/ExtrairSkillsRequest.java, SkillsResponse.java, AnalisarVagasRequest.java, AnaliseVagasResponse.java, AnaliseCompletaResponse.java, GerarRoadmapRequest.java, SkillParaAprender.java, RoadmapResponse.java, AnaliseVagaUnicaResponse.java
+├── filter/RateLimitFilter.java
+└── exception/AiException.java, InvalidPdfException.java, GlobalExceptionHandler.java
 
 src/test/java/com/david/matchcv/
 ├── MatchCvApplicationTests.java
-├── controller/AiPingControllerTest.java, SkillControllerTest.java, AnalysisControllerTest.java
-├── domain/SkillPriorityCalculatorTest.java
-└── service/AiPingServiceTest.java, SkillExtractionServiceTest.java, VagaAnalysisServiceTest.java
+├── controller/AiPingControllerTest.java, SkillControllerTest.java, AnalysisControllerTest.java, CvControllerTest.java, AnaliseControllerTest.java, RoadmapControllerTest.java, VagaUnicaControllerTest.java
+├── domain/SkillPriorityCalculatorTest.java, GapAnalyzerTest.java
+├── filter/RateLimitFilterTest.java
+└── service/AiPingServiceTest.java, SkillExtractionServiceTest.java, VagaAnalysisServiceTest.java, CvAnalysisServiceTest.java, AnaliseCompletaServiceTest.java, RoadmapServiceTest.java, VagaUnicaAiAnalyzerTest.java, AnaliseVagaUnicaServiceTest.java
 ```
 
 ## Como rodar / testar
@@ -76,4 +111,4 @@ src/test/java/com/david/matchcv/
 
 (Alternativa sem arquivo local: definir a variavel de ambiente `ANTHROPIC_API_KEY`.)
 
-Endpoints atuais: `GET /api/hello`, `GET /api/ai/ping`, `POST /api/skills/extract`, `POST /api/skills/analyze`.
+Endpoints atuais: `GET /api/hello`, `GET /api/ai/ping`, `POST /api/skills/extract`, `POST /api/skills/analyze`, `POST /api/cv/extract`, `POST /api/analise/completa`, `POST /api/roadmap`, `POST /api/analise/vaga-unica`.
