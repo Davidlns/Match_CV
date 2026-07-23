@@ -2,20 +2,33 @@
 
 ## Visão geral
 
-Ferramenta para quem busca emprego. O usuário cola descrições de uma ou mais
-vagas e (opcionalmente) anexa o próprio currículo. A aplicação:
+Ferramenta para quem busca a primeira vaga de dev. Em vez de uma tela única, a
+aplicação oferece **cinco fluxos**, cada um respondendo uma pergunta concreta —
+o usuário escolhe o que quer fazer antes de fornecer os dados:
 
-1. Extrai e normaliza as skills das vagas, agrega por frequência e classifica
-   por prioridade (Alta/Média/Baixa).
-2. Se houver currículo, extrai as skills dele e faz um "gap analysis":
-   o que o usuário tem (match), o que falta (gap) e o que tem mas nenhuma vaga
-   pediu. Também calcula uma **porcentagem de sinergia de cada vaga** com o
-   currículo (quanto das skills daquela vaga o usuário já cobre), para ele saber
-   pra quais vagas está mais pronto.
-3. Sob demanda (botão), gera um roadmap de estudo focado nos gaps.
+1. **Uma vaga + currículo** — "Estou pronto pra esta vaga?" Cobertura do perfil,
+   o que falta (separando obrigatório de diferencial), ATS direcionado à vaga e
+   sugestões de melhoria do currículo.
+2. **Múltiplas vagas (3–8), sem currículo** — "O que o mercado está pedindo?"
+   Panorama das skills do conjunto, com o dado bruto visível.
+3. **Múltiplas vagas (3–8) + currículo** — "Onde estou em relação ao mercado?"
+   Gap contra o conjunto, sinergia por vaga, panorama de mercado e ATS por segmento.
+4. **Só currículo** — "Meu currículo é bom?" ATS estrutural, posicionamento/
+   direcionamento e solidez técnica, com nota de critérios visíveis.
+5. **Dois currículos** — comparação neutra (qual é mais forte e por quê), com modo
+   opcional de evolução (versão antiga × nova, avaliado às cegas primeiro).
+
+A **agregação de skills** expõe o dado bruto (frequência entre vagas, se é
+obrigatória ou diferencial), ordenado por frequência ponderada pelo tipo, com as
+skills agrupadas em **estratos de consenso nomeados por significado** — sem buckets
+Alta/Média/Baixa. O **gap analysis** (match/gap/extra) e a **sinergia por vaga** são
+lógica de conjunto em Java puro. O **roadmap** de estudo é gerado sob demanda.
 
 Público-alvo: comunidade de quem busca a primeira vaga. Será publicado
 gratuitamente.
+
+O produto e sua motivação estão em `redesenho-produto.md`; o plano de execução
+(contratos, fatias) em `plano-tecnico.md`.
 
 ## Stack
 
@@ -32,13 +45,17 @@ gratuitamente.
   persistido em disco ou banco. (Evita responsabilidade de LGPD; é ponto de
   venda: "seu currículo não é armazenado".)
 - Extração de texto do PDF do currículo no backend com Apache PDFBox.
-- Prioridade das skills é calculada no backend por regra determinística,
-  combinando o TIPO (obrigatória/diferencial, extraído da vaga pela IA) com a
-  frequência entre vagas: ALTA se obrigatória em >=70% das vagas; senão MEDIA se
-  aparece (obrigatória ou diferencial) em >=40%; senão BAIXA. Com 1 vaga:
-  obrigatória=ALTA, diferencial=MEDIA. Se a vaga não distingue requisitos de
-  diferenciais, tudo é tratado como obrigatória. A IA extrai/normaliza/classifica
-  o tipo; o código conta e classifica a prioridade.
+- Agregação de skills calculada no backend por regra determinística (Java puro),
+  a partir do TIPO (obrigatória/diferencial, extraído da vaga pela IA) e da
+  frequência entre vagas. Expõe o **dado bruto** por skill: frequência (em quantas
+  vagas aparece), obrigatoriaEm (em quantas é obrigatória) e percentual de presença.
+  **Ordenação por frequência ponderada pelo tipo** (obrigatória pesa mais que
+  diferencial). Skills agrupadas em **estratos de consenso nomeados por significado**
+  ("exigido em praticamente todas" / "aparece com frequência" / "menos comum, mas
+  presente") — hierarquia por densidade, **nada é escondido ou colapsado**. Sem os
+  buckets Alta/Média/Baixa. Se a vaga não distingue requisito de diferencial, tudo é
+  tratado como obrigatória. A IA extrai/normaliza/classifica o tipo; o código agrega,
+  ordena e estratifica.
 - O gap analysis (cruzar skills da vaga x do CV) é lógica de conjunto em Java
   puro, sem IA.
 - Chamadas de IA separadas por etapa (extração barata x roadmap caro).
@@ -46,6 +63,35 @@ gratuitamente.
   Extração das vagas e do CV deve usar vocabulário consistente entre si.
 - Rate limiting básico por IP nos endpoints que chamam a IA (proteção contra
   abuso, já que o app é público).
+- O **currículo é obrigatório em 4 dos 5 fluxos** — só o fluxo de múltiplas vagas
+  sem currículo (opção 2) dispensa. A entrada é por fluxo: cada um pede exatamente o
+  que precisa, não uma tela genérica com tudo opcional.
+- **Limites de entrada: 3 a 8 vagas** nos fluxos de múltiplas vagas (2 e 3),
+  validados no backend (não só na interface) e comunicados antes de o usuário
+  esbarrar. Com 1 vaga, o caminho é a opção 1.
+
+## Princípios de análise (transversais)
+
+Valem para todos os fluxos que os envolvem. Detalhamento em `redesenho-produto.md`.
+
+- **Análise de ATS que explica o mecanismo.** Cada apontamento traz: o que está no
+  currículo, **por que** atrapalha a leitura automatizada, e o que fazer.
+  Direcionada quando há vaga (casamento de vocabulário, termos que a vaga repete e o
+  CV não menciona); estrutural quando não há (multi-coluna, texto em imagem, PDF não
+  extraível, seções não convencionais). **Honestidade:** não existe ATS único;
+  apontar os problemas de maior impacto provável sem prometer aprovação em filtro
+  específico.
+- **Sugestões sobre lacunas — os dois caminhos.** Apontar tudo que a vaga pede e o
+  CV não demonstra é obrigatório. Para cada lacuna, as duas saídas sem presumir qual
+  se aplica: se a pessoa **tem** e não explicitou → ajustar o currículo; se **não
+  tem** → estudar (roadmap).
+- **Suficiência das recomendações.** Se o currículo já está sólido, **dizer isso** e
+  limitar as recomendações ao pontual e relevante — ou a nenhuma. Fabricar melhorias
+  destrói a confiança. A avaliação precisa poder concluir "está bom".
+- **Regras do roadmap.** Duas variantes: **completo** (tudo, do zero, ignora o CV) e
+  **direcionado** (só o que falta; cobertas aparecem na sequência, marcadas como
+  concluídas, sem detalhe, **não expansíveis**). A **escolha só existe quando há
+  currículo** — sem CV (opção 2), só o completo. Roadmaps precisam ser **salváveis**.
 
 ## Estratégia de modelos e uso de tokens
 
@@ -68,7 +114,8 @@ Escolha de modelo (do mais barato ao mais caro):
   definidas: extração e normalização de skills (vagas e CV). Barato e suficiente.
 - **Sonnet 4.6** (`claude-sonnet-4-6`) — só para tarefas que exigem raciocínio
   de verdade ou geração de qualidade, e só depois de confirmar que o Haiku não
-  dá conta. Candidato: o roadmap de estudo (Fatia 6).
+  dá conta. Candidatos: o roadmap de estudo, o feedback de ATS e a comparação de
+  currículos.
 - **Opus** — não usar por padrão; este app não precisa. Reservado para o caso
   raro de algo ser complexo demais até para o Sonnet.
 - **Fable 5 (`claude-fable-5`) — PROIBIDO em qualquer hipótese.** É o modelo mais
@@ -114,9 +161,10 @@ Princípios:
   com o **modo escuro como padrão** (combina com a estética dev). A troca deve
   ser suave e a preferência do usuário, lembrada.
 
-Momentos de destaque (onde caprichar no "uau"): a visualização das skills por
-prioridade (Alta/Média/Baixa) e do gap analysis (tem / falta / sobra) devem ser
-visuais e agradáveis, não uma tabela crua.
+Momentos de destaque (onde caprichar no "uau"): a **apresentação das skills por
+densidade de consenso** (o dado bruto — frequência e tipo — com hierarquia visual,
+sem tabela crua nem faixas Alta/Média/Baixa) e o **gap analysis** (tem / falta /
+sobra) devem ser visuais e agradáveis.
 
 Escopo: decisões finas (paleta exata, fontes, biblioteca de componentes/animação)
 ficam para a fase de frontend — construímos o backend primeiro. Este bloco é a
@@ -178,7 +226,8 @@ estas são as escolhas de ferramenta que a implementavam.
 
 - Login / contas de usuário.
 - Persistência (banco, histórico de análises).
-- Exportar roadmap em PDF.
+- Exportar roadmap **em PDF** — o roadmap precisa ser **salvável**, mas no MVP isso
+  é client-side em **Markdown** (download `.md` + copiar); PDF fica para v2.
 
 ## Estrutura do repositório (monorepo)
 
@@ -192,7 +241,7 @@ Match_CV/                 # raiz do repositório
 ├── .gitignore            # ignore único, cobre o monorepo todo
 ├── .gitattributes        # atributos do repo (eol do mvnw etc.)
 ├── backend/              # aplicação Spring Boot (pom.xml, mvnw, src/)
-└── frontend/             # aplicação Next.js (ainda não criada)
+└── frontend/             # aplicação Next.js (Next 16 + TS)
 ```
 
 O backend roda a partir de `backend/` (é onde estão o `pom.xml` e o wrapper):
@@ -203,8 +252,16 @@ cd backend
 .\mvnw.cmd test              # roda a suíte
 ```
 
+O frontend roda a partir de `frontend/`:
+
+```powershell
+cd frontend
+npm run dev    # sobe o Next (porta 3000)
+npm test       # roda a suíte (Vitest)
+```
+
 A chave da Anthropic continua em `backend/src/main/resources/application-local.properties`
-(fora do Git). O frontend, quando existir, só consome a API do backend.
+(fora do Git). O frontend (em `frontend/`) só consome a API do backend.
 
 ## Como trabalhamos
 
@@ -213,6 +270,9 @@ A chave da Anthropic continua em `backend/src/main/resources/application-local.p
 - Escopo apertado nas tasks: aponte os arquivos/diretórios exatos.
 - Nas partes de Spring Boot, explicar o que cada camada faz e por quê
   (estou aprendendo Spring construindo este projeto).
+- O estado atual (fatia concluída, decisões tomadas) é rastreado em `PROGRESS.md`.
+  Consulte-o ao começar uma sessão e atualize-o ao concluir uma fatia ou fazer uma
+  mudança relevante.
 
 ## Padrões de engenharia (obrigatórios em toda fatia)
 
@@ -234,59 +294,9 @@ nem "pra depois":
 Motivo: o projeto é aprendizado de Spring E peça de portfólio; qualidade,
 testes e robustez são parte do valor, não um extra.
 
-## Roadmap de fatias (verticais) — Backend
+## Roadmap e estado das fatias
 
-Cada fatia sobe ponta a ponta — com testes e tratamento de erro — antes da
-próxima. O **estado atual** (qual fatia foi concluída, onde estamos, decisões já
-tomadas) é rastreado em `PROGRESS.md` na raiz do projeto. **Consulte o
-PROGRESS.md ao começar uma sessão e atualize-o sempre que concluir uma fatia ou
-fizer uma mudança relevante.**
-
-**Todas as fatias de backend (0–7 + rate limiting) estão concluídas.**
-
-0. `GET /api/hello` — app sobe e responde JSON (fumaça).
-1. Config da chave (env) + `AnthropicClient` + ping na IA (`GET /api/ai/ping`).
-2. Extrair skills de 1 vaga (Haiku + saída estruturada tipada).
-3. N vagas + agregação por frequência + prioridade Alta/Média/Baixa (Java puro).
-4. Upload do CV em PDF → PDFBox em memória → skills do CV.
-5. Gap analysis (match / gap / extra) + **sinergia por vaga** (% das skills de
-   cada vaga cobertas pelo CV) — lógica de conjunto em Java puro, sem IA.
-6. Roadmap de estudo sob demanda (IA; testar modelo melhor se a qualidade exigir).
-7. Experiência de vaga única (pós-núcleo): reúne o alinhamento (sinergia) com
-   AQUELA vaga, o roadmap direcionado, um feedback de como o CV se sairia num
-   filtro de currículos (ATS) e sugestões de melhoria do CV direcionadas à vaga.
-   As partes de IA (feedback ATS e sugestões) são candidatas a Sonnet
-   (geração/raciocínio de qualidade); o alinhamento é Java puro.
-* Rate limiting por IP nos endpoints de IA — encaixar após a fatia 2.
-
-## Roadmap de fatias (verticais) — Frontend
-
-Mesma filosofia do backend: cada fatia sobe ponta a ponta (input → API → algo
-visível funcionando), com testes (Vitest + RTL) e tratamento de erro. Consome os
-endpoints já prontos do backend. Estado rastreado no mesmo `PROGRESS.md`.
-
-0. **Scaffold + fumaça** — criar `frontend/` (Next App Router + TS), shell de
-   layout, e provar o encaixe chamando `GET /api/ai/ping` e exibindo o resultado.
-   Inclui a config de **CORS no backend** liberando a origem do front.
-1. **Design system + tema claro/escuro** — tokens (paleta, tipografia com acento
-   monoespaçado), theme provider com **escuro padrão** + seletor com preferência
-   lembrada e troca suave, primitivos base (Button, Card, Input, Textarea) e
-   header com identidade "de dev".
-2. **Entrada de vagas + skills por prioridade** — colar N vagas
-   (adicionar/remover), `POST /api/skills/analyze`, e a **visualização de skills
-   por prioridade** (Alta/Média/Baixa) — momento de destaque, visual e não tabela.
-   Loading com personalidade.
-3. **Upload do CV + gap analysis + sinergia** — drag-drop de PDF, troca para
-   `POST /api/analise/completa`, e o **gap analysis** (tem/falta/sobra) + sinergia
-   por vaga — o outro momento de destaque. Reforço do "seu CV não é armazenado".
-4. **Roadmap sob demanda** — botão que chama `POST /api/roadmap` com as skills do
-   gap e renderiza o Markdown, com estado de espera caprichado (Sonnet é lento).
-5. **Experiência de vaga única** — rota dedicada consumindo
-   `POST /api/analise/vaga-unica`: alinhamento + roadmap dirigido + card de
-   feedback ATS (pontuação, favoráveis, pontos de atenção com categoria/impacto,
-   ações prioritárias).
-6. **Polimento** — responsividade mobile, passe de acessibilidade
-   (contraste/foco/aria), micro-interações finais, estados de erro/vazio (incl.
-   429/503) bem apresentados, performance.
-* **Transversal** — cliente de API + tratamento de erro central: encaixa já na
-  fatia 0 e amadurece a cada fatia (como o exception handler no backend).
+O roadmap completo do redesenho (Fase A: fluxos 1–3; Fase B: fluxos 4–5) está em
+`plano-tecnico.md`, e o **estado atual** (fatias concluídas, decisões tomadas) em
+`PROGRESS.md`. O CLAUDE.md guarda as regras vigentes, não o histórico do que já
+foi feito.

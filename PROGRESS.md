@@ -1,11 +1,16 @@
 /# PROGRESS — Match_CV
 
 Estado atual do projeto. **Atualizar sempre que uma fatia for concluída ou uma
-mudança relevante for feita.** Para o contexto e as decisões fixas do projeto,
-ver `CLAUDE.md` (inclui o roadmap completo das fatias).
+mudança relevante for feita.** Para as decisões fixas do projeto, ver `CLAUDE.md`;
+para o roadmap do redesenho e os contratos, ver `plano-tecnico.md`.
 
 - **Última atualização:** 2026-07-23
-- **Fatia atual:** F2 do frontend concluída (entrada de vagas + visualização de skills por prioridade). Próximo: **F3** — upload do CV + gap analysis + sinergia por vaga.
+- **Fatia atual:** **redesenho de produto planejado** (`redesenho-produto.md` +
+  `plano-tecnico.md`); **Fase A ainda não iniciada**. Próximo: **Fatia 1 do
+  redesenho** — nova agregação e apresentação de skills (dado bruto + estratos de
+  consenso, substitui Alta/Média/Baixa). O núcleo do backend (fatias 0–7 + rate
+  limiting) e o frontend F0–F2 estão concluídos; o redesenho reorganiza o produto
+  em cinco fluxos por cima disso.
 
 ## Fatias
 
@@ -95,14 +100,65 @@ testes com **Vitest + RTL** em toda fatia, cliente de API único com tratamento 
   - **`api-client.ts`**: tipos `SkillAnalisada` e `AnaliseVagasResposta` adicionados; método `api.analisarVagas()`.
   - **`page.tsx`**: título em mono + tagline, monta `EntradaDeVagas` + `AnimatePresence` com 3 estados (carregando pulsante em ciano, erro, resultado).
   - Testes: hook (6 casos), EntradaDeVagas (9 casos), VisualizacaoDeSkills (5 casos), api-client (2 novos), page (3 smoke tests). **37 testes, todos verdes.**
-- [ ] **F3** — Upload do CV (drag-drop PDF) + gap analysis (tem/falta/sobra) + sinergia por vaga (`POST /api/analise/completa`) — momento de destaque.
-- [ ] **F4** — Roadmap sob demanda (`POST /api/roadmap`) com render de Markdown e loading caprichado.
-- [ ] **F5** — Experiência de vaga única (`POST /api/analise/vaga-unica`): alinhamento + roadmap dirigido + card de feedback ATS.
-- [ ] **F6** — Polimento: responsividade, acessibilidade, micro-interações, estados de erro/vazio (429/503), performance.
-- [ ] **Transversal** — cliente de API + tratamento de erro central (encaixa na F0, amadurece a cada fatia).
+Do roadmap de frontend abaixo, **F3–F5 foram substituídas pelo fatiamento do
+redesenho** (ver "Redesenho de produto") — cada uma tem equivalente no
+`plano-tecnico.md`. A **F6 (polimento) NÃO foi substituída**: continua **pendente**,
+pois nenhuma fatia do redesenho a cobre por inteiro (ver "Pendências sem fatia").
+Fica registrado para preservar o rastro:
 
-**Mudança pendente no backend (nasce na F0 do front):** adicionar config de CORS
-liberando a origem do frontend. Único ajuste de backend previsto para o frontend.
+- [~] **F3** — Upload do CV + gap analysis + sinergia (`/api/analise/completa`) —
+  *substituída* (o conteúdo migra para as Fatias 3 e 4 do redesenho).
+- [~] **F4** — Roadmap sob demanda (`/api/roadmap`) — *substituída* (Fatia 5 do
+  redesenho, agora com variantes completo/direcionado + salvável).
+- [~] **F5** — Experiência de vaga única (`/api/analise/vaga-unica`) —
+  *substituída* (Fatia 3 do redesenho, a opção "Estou pronto pra esta vaga?").
+- [ ] **F6** — Polimento (responsividade mobile, acessibilidade contraste/foco/aria,
+  micro-interações finais, performance) — **pendente**. A Fatia 6 do redesenho cobre
+  só estados de erro/vazio + docs, um subconjunto pequeno; o restante do polimento
+  não tem fatia atribuída (ver "Pendências sem fatia").
+- [x] **Transversal** — cliente de API + tratamento de erro central: criado na F0
+  (`ApiError`, `NEXT_PUBLIC_API_BASE_URL`), amadurece a cada fatia.
+
+## Redesenho de produto (Fase A: fluxos 1–3 · Fase B: fluxos 4–5)
+
+Reorganiza o produto em cinco fluxos por cima do núcleo já pronto. Motivação em
+`redesenho-produto.md`; contratos, decisões e escopo por fatia em `plano-tecnico.md`.
+**Estado: Fase A não iniciada.** Modelo por fatia registrado na memória
+(`uso-de-modelos-nas-fatias`); nas fatias de Opus, plano antes de executar.
+
+**Fase A — fluxos que reaproveitam backend**
+
+- [ ] **Fatia 1** — Nova agregação e apresentação de skills (dado bruto + estratos
+  de consenso, ordenação por frequência ponderada; substitui Alta/Média/Baixa).
+  Back: novo agregador + `SkillAgregada`/`EstratoConsenso`. Front: visualização por
+  densidade. *(Opus)*
+- [ ] **Fatia 2** — Tela de escolha de fluxo + limites 3–8 (validados no backend) +
+  entrada por fluxo. *(Sonnet)*
+- [ ] **Fatia 3** — Opção 1 (1 vaga + CV): gap por tipo, ATS direcionado, sugestões
+  em duas frentes. *(Opus)*
+- [ ] **Fatia 4** — Opção 3 (3–8 + CV): gap-first, sinergia, ATS por segmento (novo). *(Opus)*
+- [ ] **Fatia 5** — Roadmap com variantes completo/direcionado + salvável (Markdown). *(Sonnet)*
+- [ ] **Fatia 6** — Fechamento: bug do resultado órfão, estados de erro, docs. *(Sonnet)*
+
+**Fase B — fluxos novos**
+
+- [ ] **Fatia 7** — Opção 4 (só CV): ATS estrutural, posicionamento, nota com
+  critérios visíveis. *(Opus)*
+- [ ] **Fatia 8** — Opção 5 (dois CVs): comparação neutra + modo evolução cego. *(Opus)*
+
+## Pendências sem fatia (revisar ao fim da Fase A)
+
+Itens decididos ao longo do trabalho que **não pertencem a nenhuma fatia** do plano
+atual. Ficam aqui para não sumirem na transição — revisar quando os cinco fluxos
+existirem.
+
+- [ ] **Polimento de frontend** (herdado da antiga F6): responsividade mobile,
+  passe de acessibilidade (contraste/foco/aria), micro-interações finais,
+  performance. A Fatia 6 do redesenho cobre só estados de erro/vazio + docs.
+- [ ] **Identidade visual / logo** — adiada por decisão consciente para depois de
+  os fluxos existirem, quando a linguagem visual do app estiver estabelecida.
+- [ ] **Limpar assets de exemplo do create-next-app** — `next.svg`, `vercel.svg`,
+  `file.svg`, `globe.svg`, `window.svg` em `frontend/public/`, que ficarão órfãos.
 
 ## Decisões técnicas já tomadas
 
