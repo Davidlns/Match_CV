@@ -8,8 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
-import com.david.matchcv.domain.Prioridade;
-import com.david.matchcv.domain.SkillPrioridade;
+import com.david.matchcv.domain.EstratoConsenso;
+import com.david.matchcv.domain.SkillAgregada;
 import com.david.matchcv.domain.SinergiaVaga;
 import com.david.matchcv.dto.AnaliseCompletaResponse;
 import com.david.matchcv.exception.AiException;
@@ -35,13 +35,13 @@ class AnaliseControllerTest {
     @Test
     void deveRetornar200ComAnaliseCompleta() throws Exception {
         AnaliseCompletaResponse resposta = new AnaliseCompletaResponse(
-                2,
-                List.of(new SkillPrioridade("Java", 2, 2, 100, Prioridade.ALTA)),
+                3,
+                List.of(new SkillAgregada("Java", 3, 3, 100, EstratoConsenso.PRATICAMENTE_TODAS)),
                 List.of("Java"),
                 List.of("Docker"),
                 List.of("Python"),
                 50,
-                List.of(new SinergiaVaga(1, 50), new SinergiaVaga(2, 50))
+                List.of(new SinergiaVaga(1, 50), new SinergiaVaga(2, 50), new SinergiaVaga(3, 50))
         );
         when(analiseCompletaService.analisar(any(), any())).thenReturn(resposta);
 
@@ -50,17 +50,15 @@ class AnaliseControllerTest {
 
         mockMvc.perform(multipart("/api/analise/completa")
                         .file(arquivo)
-                        .param("descricoesVagas", "vaga 1", "vaga 2"))
+                        .param("descricoesVagas", "vaga 1", "vaga 2", "vaga 3"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalVagas").value(2))
+                .andExpect(jsonPath("$.totalVagas").value(3))
                 .andExpect(jsonPath("$.match[0]").value("Java"))
                 .andExpect(jsonPath("$.gap[0]").value("Docker"))
                 .andExpect(jsonPath("$.extra[0]").value("Python"))
                 .andExpect(jsonPath("$.sinergiaMedia").value(50))
-                .andExpect(jsonPath("$.vagasComSinergia[0].indice").value(1))
-                .andExpect(jsonPath("$.vagasComSinergia[0].sinergia").value(50))
                 .andExpect(jsonPath("$.skillsAgregadas[0].nome").value("Java"))
-                .andExpect(jsonPath("$.skillsAgregadas[0].prioridade").value("ALTA"));
+                .andExpect(jsonPath("$.skillsAgregadas[0].estrato").value("PRATICAMENTE_TODAS"));
     }
 
     @Test
@@ -68,9 +66,33 @@ class AnaliseControllerTest {
         MockMultipartFile arquivo = new MockMultipartFile(
                 "arquivo", "cv.pdf", "application/pdf", "%PDF conteudo".getBytes());
 
-        // Sem o param "descricoesVagas" → MissingServletRequestParameterException → 400.
         mockMvc.perform(multipart("/api/analise/completa").file(arquivo))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deveRetornar400QuandoMenosDeTresVagas() throws Exception {
+        MockMultipartFile arquivo = new MockMultipartFile(
+                "arquivo", "cv.pdf", "application/pdf", "%PDF conteudo".getBytes());
+
+        mockMvc.perform(multipart("/api/analise/completa")
+                        .file(arquivo)
+                        .param("descricoesVagas", "vaga 1", "vaga 2"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Envie entre 3 e 8 descrições de vaga."));
+    }
+
+    @Test
+    void deveRetornar400QuandoMaisDeOitoVagas() throws Exception {
+        MockMultipartFile arquivo = new MockMultipartFile(
+                "arquivo", "cv.pdf", "application/pdf", "%PDF conteudo".getBytes());
+
+        mockMvc.perform(multipart("/api/analise/completa")
+                        .file(arquivo)
+                        .param("descricoesVagas",
+                                "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Envie entre 3 e 8 descrições de vaga."));
     }
 
     @Test
@@ -83,7 +105,7 @@ class AnaliseControllerTest {
 
         mockMvc.perform(multipart("/api/analise/completa")
                         .file(arquivo)
-                        .param("descricoesVagas", "vaga 1"))
+                        .param("descricoesVagas", "vaga 1", "vaga 2", "vaga 3"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Arquivo PDF inválido ou corrompido."));
     }
@@ -98,7 +120,7 @@ class AnaliseControllerTest {
 
         mockMvc.perform(multipart("/api/analise/completa")
                         .file(arquivo)
-                        .param("descricoesVagas", "vaga 1"))
+                        .param("descricoesVagas", "vaga 1", "vaga 2", "vaga 3"))
                 .andExpect(status().isServiceUnavailable());
     }
 }

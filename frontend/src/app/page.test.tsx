@@ -1,41 +1,46 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import HomePage from './page';
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-      <div {...props}>{children}</div>
-    ),
-    p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-      <p {...props}>{children}</p>
-    ),
-  },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-vi.mock('@/lib/api-client', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/api-client')>();
-  return { ...actual, api: { ...actual.api, analisarVagas: vi.fn() } };
-});
-
-describe('HomePage', () => {
-  it('renderiza o título e o textarea de entrada de vagas', () => {
+describe('HomePage (tela de escolha)', () => {
+  it('renderiza o título da tela de escolha', () => {
     render(<HomePage />);
 
-    expect(screen.getByText(/analise suas vagas/i)).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: /descrição da vaga/i })).toBeInTheDocument();
+    expect(screen.getByText(/o que você quer descobrir/i)).toBeInTheDocument();
   });
 
-  it('exibe o botão de adicionar vaga', () => {
+  it('renderiza os cinco fluxos', () => {
     render(<HomePage />);
 
-    expect(screen.getByRole('button', { name: /adicionar vaga/i })).toBeInTheDocument();
+    expect(screen.getByText('O que o mercado pede?')).toBeInTheDocument();
+    expect(screen.getByText('Estou pronto pra esta vaga?')).toBeInTheDocument();
+    expect(screen.getByText('Onde estou vs o mercado?')).toBeInTheDocument();
+    expect(screen.getByText('Meu CV é bom?')).toBeInTheDocument();
+    expect(screen.getByText('Dois CVs, qual está melhor?')).toBeInTheDocument();
   });
 
-  it('não exibe o botão de analisar antes de adicionar vagas', () => {
+  it('os três primeiros fluxos têm links', () => {
     render(<HomePage />);
 
-    expect(screen.queryByRole('button', { name: /analisar/i })).not.toBeInTheDocument();
+    const links = screen.getAllByRole('link');
+    const hrefs = links.map((l) => l.getAttribute('href'));
+    expect(hrefs).toContain('/fluxo/esta-vaga');
+    expect(hrefs).toContain('/fluxo/mercado');
+    expect(hrefs).toContain('/fluxo/minha-posicao');
+  });
+
+  it('fluxos 4 e 5 têm badge "em breve"', () => {
+    render(<HomePage />);
+
+    const badges = screen.getAllByText(/em breve/i);
+    expect(badges).toHaveLength(2);
+  });
+
+  it('exibe os números dos fluxos', () => {
+    render(<HomePage />);
+
+    ['01', '02', '03', '04', '05'].forEach((n) =>
+      expect(screen.getByText(n)).toBeInTheDocument(),
+    );
   });
 });

@@ -3,6 +3,7 @@ package com.david.matchcv.controller;
 import java.util.List;
 
 import com.david.matchcv.dto.AnaliseCompletaResponse;
+import com.david.matchcv.exception.VagasForaDoLimiteException;
 import com.david.matchcv.service.AnaliseCompletaService;
 
 import org.springframework.http.MediaType;
@@ -17,24 +18,22 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/analise")
 public class AnaliseController {
 
+    private static final int MINIMO_VAGAS = 3;
+    private static final int MAXIMO_VAGAS = 8;
+
     private final AnaliseCompletaService analiseCompletaService;
 
     public AnaliseController(AnaliseCompletaService analiseCompletaService) {
         this.analiseCompletaService = analiseCompletaService;
     }
 
-    /**
-     * Análise completa: vagas + currículo.
-     * Recebe multipart/form-data com:
-     *   - "arquivo": o PDF do currículo.
-     *   - "descricoesVagas": uma ou mais descrições de vaga (um campo por vaga).
-     * Devolve skills agregadas por prioridade, gap analysis e sinergia por vaga.
-     * POST /api/analise/completa
-     */
     @PostMapping(value = "/completa", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AnaliseCompletaResponse> analisar(
             @RequestParam("arquivo") MultipartFile arquivo,
             @RequestParam("descricoesVagas") List<String> descricoesVagas) {
+        if (descricoesVagas.size() < MINIMO_VAGAS || descricoesVagas.size() > MAXIMO_VAGAS) {
+            throw new VagasForaDoLimiteException("Envie entre 3 e 8 descrições de vaga.");
+        }
         return ResponseEntity.ok(analiseCompletaService.analisar(descricoesVagas, arquivo));
     }
 }

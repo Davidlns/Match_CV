@@ -2,11 +2,11 @@ package com.david.matchcv.service;
 
 import java.util.List;
 
+import com.david.matchcv.domain.AgregadorDeSkills;
 import com.david.matchcv.domain.GapAnalyzer;
 import com.david.matchcv.domain.ResultadoGap;
+import com.david.matchcv.domain.SkillAgregada;
 import com.david.matchcv.domain.SkillExtraida;
-import com.david.matchcv.domain.SkillPrioridade;
-import com.david.matchcv.domain.SkillPriorityCalculator;
 import com.david.matchcv.dto.AnaliseCompletaResponse;
 
 import org.springframework.stereotype.Service;
@@ -16,16 +16,16 @@ import org.springframework.web.multipart.MultipartFile;
 public class AnaliseCompletaService {
 
     private final SkillExtractionService skillExtractionService;
-    private final SkillPriorityCalculator skillPriorityCalculator;
+    private final AgregadorDeSkills agregadorDeSkills;
     private final CvAnalysisService cvAnalysisService;
     private final GapAnalyzer gapAnalyzer;
 
     public AnaliseCompletaService(SkillExtractionService skillExtractionService,
-                                   SkillPriorityCalculator skillPriorityCalculator,
+                                   AgregadorDeSkills agregadorDeSkills,
                                    CvAnalysisService cvAnalysisService,
                                    GapAnalyzer gapAnalyzer) {
         this.skillExtractionService = skillExtractionService;
-        this.skillPriorityCalculator = skillPriorityCalculator;
+        this.agregadorDeSkills = agregadorDeSkills;
         this.cvAnalysisService = cvAnalysisService;
         this.gapAnalyzer = gapAnalyzer;
     }
@@ -41,8 +41,8 @@ public class AnaliseCompletaService {
                 .map(skillExtractionService::extrairSkills)
                 .toList();
 
-        // 2. Agregação e priorização: Java puro.
-        List<SkillPrioridade> skillsAgregadas = skillPriorityCalculator.calcular(skillsPorVaga);
+        // 2. Agregação, ordenação e estratificação: Java puro.
+        List<SkillAgregada> skillsAgregadas = agregadorDeSkills.agregar(skillsPorVaga);
 
         // 3. Extração do CV: 1 chamada de IA (mesmo prompt → vocabulário canônico consistente).
         List<SkillExtraida> skillsDoCv = cvAnalysisService.extrairSkillsDoCv(arquivo);

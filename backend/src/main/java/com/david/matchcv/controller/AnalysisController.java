@@ -2,7 +2,7 @@ package com.david.matchcv.controller;
 
 import java.util.List;
 
-import com.david.matchcv.domain.SkillPrioridade;
+import com.david.matchcv.domain.SkillAgregada;
 import com.david.matchcv.dto.AnalisarVagasRequest;
 import com.david.matchcv.dto.AnaliseVagasResponse;
 import com.david.matchcv.service.VagaAnalysisService;
@@ -24,7 +24,7 @@ public class AnalysisController {
 
     @PostMapping("/api/skills/analyze")
     public AnaliseVagasResponse analisar(@Valid @RequestBody AnalisarVagasRequest request) {
-        List<SkillPrioridade> skills = vagaAnalysisService.analisar(request.descricoesVagas());
+        List<SkillAgregada> skills = vagaAnalysisService.analisar(request.descricoesVagas());
         return new AnaliseVagasResponse(request.descricoesVagas().size(), skills);
     }
 }

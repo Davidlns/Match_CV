@@ -90,7 +90,7 @@ describe('EntradaDeVagas', () => {
     expect(mockRemover).toHaveBeenCalledWith(0);
   });
 
-  it('exibe o botão de analisar quando há vagas', () => {
+  it('exibe o botão de analisar quando há vagas (sem mínimo configurado)', () => {
     render(<EntradaDeVagas {...defaultProps} vagas={['Vaga 1']} />);
 
     expect(screen.getByRole('button', { name: /analisar 1 vaga/i })).toBeInTheDocument();
@@ -108,5 +108,53 @@ describe('EntradaDeVagas', () => {
     render(<EntradaDeVagas {...defaultProps} />);
 
     expect(screen.queryByRole('button', { name: /analisar/i })).not.toBeInTheDocument();
+  });
+
+  it('não exibe o botão de analisar quando abaixo do mínimo configurado', () => {
+    render(
+      <EntradaDeVagas
+        {...defaultProps}
+        vagas={['Vaga 1', 'Vaga 2']}
+        minimoVagas={3}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /analisar/i })).not.toBeInTheDocument();
+  });
+
+  it('exibe aviso quando há vagas mas abaixo do mínimo', () => {
+    render(
+      <EntradaDeVagas
+        {...defaultProps}
+        vagas={['Vaga 1', 'Vaga 2']}
+        minimoVagas={3}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(/adicione mais 1 vaga para analisar/i);
+  });
+
+  it('desabilita o botão de adicionar ao atingir o máximo', () => {
+    render(
+      <EntradaDeVagas
+        {...defaultProps}
+        vagas={['V1', 'V2', 'V3']}
+        maximoVagas={3}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /adicionar vaga/i })).toBeDisabled();
+  });
+
+  it('exibe o contador quando maximoVagas está configurado', () => {
+    render(
+      <EntradaDeVagas
+        {...defaultProps}
+        vagas={['V1', 'V2']}
+        maximoVagas={8}
+      />,
+    );
+
+    expect(screen.getByText('2/8 vagas')).toBeInTheDocument();
   });
 });

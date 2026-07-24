@@ -11,6 +11,8 @@ type Props = {
   aoRemoverVaga: (indice: number) => void;
   aoAnalisar: () => void;
   estaAnalisando: boolean;
+  minimoVagas?: number;
+  maximoVagas?: number;
 };
 
 export function EntradaDeVagas({
@@ -19,12 +21,18 @@ export function EntradaDeVagas({
   aoRemoverVaga,
   aoAnalisar,
   estaAnalisando,
+  minimoVagas = 1,
+  maximoVagas,
 }: Props) {
   const [texto, setTexto] = useState('');
 
+  const atingiuMaximo = maximoVagas !== undefined && vagas.length >= maximoVagas;
+  const podeAnalisar = vagas.length >= minimoVagas;
+  const vagasFaltantes = minimoVagas - vagas.length;
+
   function handleAdicionar() {
     const trimado = texto.trim();
-    if (!trimado) return;
+    if (!trimado || atingiuMaximo) return;
     aoAdicionarVaga(trimado);
     setTexto('');
   }
@@ -47,13 +55,20 @@ export function EntradaDeVagas({
           rows={6}
           className="resize-none font-mono text-sm"
           aria-label="Descrição da vaga"
+          disabled={atingiuMaximo}
         />
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-2">
+          {maximoVagas !== undefined && (
+            <span className="font-mono text-xs text-muted-foreground/60">
+              {vagas.length}/{maximoVagas} vagas
+            </span>
+          )}
           <Button
             variant="outline"
             size="sm"
             onClick={handleAdicionar}
-            disabled={!texto.trim()}
+            disabled={!texto.trim() || atingiuMaximo}
+            className="ml-auto"
           >
             Adicionar vaga
           </Button>
@@ -82,7 +97,13 @@ export function EntradaDeVagas({
         </ul>
       )}
 
-      {vagas.length > 0 && (
+      {vagas.length > 0 && !podeAnalisar && (
+        <p className="text-xs text-muted-foreground" role="status">
+          Adicione mais {vagasFaltantes} {vagasFaltantes === 1 ? 'vaga' : 'vagas'} para analisar.
+        </p>
+      )}
+
+      {podeAnalisar && (
         <Button
           className="w-full gap-2"
           onClick={aoAnalisar}

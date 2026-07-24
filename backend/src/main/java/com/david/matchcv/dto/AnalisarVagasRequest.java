@@ -3,11 +3,12 @@ package com.david.matchcv.dto;
 import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
-// Entrada: uma lista de descrições de vaga. Cada item não pode ser vazio.
 public record AnalisarVagasRequest(
-        @NotEmpty(message = "Envie ao menos uma descrição de vaga.")
+        @NotNull(message = "Envie entre 3 e 8 descrições de vaga.")
+        @Size(min = 3, max = 8, message = "Envie entre 3 e 8 descrições de vaga.")
         List<@NotBlank(message = "A descrição da vaga não pode ser vazia.") String> descricoesVagas
 ) {
 }

@@ -26,17 +26,19 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export type SkillAnalisada = {
+export type EstratoConsenso = 'PRATICAMENTE_TODAS' | 'FREQUENTE' | 'PONTUAL';
+
+export type SkillAgregada = {
   nome: string;
   frequencia: number;
   obrigatoriaEm: number;
   percentual: number;
-  prioridade: 'ALTA' | 'MEDIA' | 'BAIXA';
+  estrato: EstratoConsenso;
 };
 
 export type AnaliseVagasResposta = {
   totalVagas: number;
-  skills: SkillAnalisada[];
+  skills: SkillAgregada[];
 };
 
 export const api = {

@@ -5,12 +5,11 @@ mudança relevante for feita.** Para as decisões fixas do projeto, ver `CLAUDE.
 para o roadmap do redesenho e os contratos, ver `plano-tecnico.md`.
 
 - **Última atualização:** 2026-07-23
-- **Fatia atual:** **redesenho de produto planejado** (`redesenho-produto.md` +
-  `plano-tecnico.md`); **Fase A ainda não iniciada**. Próximo: **Fatia 1 do
-  redesenho** — nova agregação e apresentação de skills (dado bruto + estratos de
-  consenso, substitui Alta/Média/Baixa). O núcleo do backend (fatias 0–7 + rate
-  limiting) e o frontend F0–F2 estão concluídos; o redesenho reorganiza o produto
-  em cinco fluxos por cima disso.
+- **Fatia atual:** **Fatia 2 do redesenho concluída** (tela de escolha de fluxo +
+  limites 3–8 + rotas por fluxo). **Próximo: Fatia 3** — Opção 1 ponta a ponta
+  (1 vaga + CV): gap por tipo, ATS direcionado, sugestões em duas frentes. *(Opus)*
+  O núcleo do backend (fatias 0–7 + rate limiting) e o frontend F0–F2
+  seguem concluídos; o redesenho reorganiza o produto em cinco fluxos por cima disso.
 
 ## Fatias
 
@@ -128,12 +127,43 @@ Reorganiza o produto em cinco fluxos por cima do núcleo já pronto. Motivação
 
 **Fase A — fluxos que reaproveitam backend**
 
-- [ ] **Fatia 1** — Nova agregação e apresentação de skills (dado bruto + estratos
-  de consenso, ordenação por frequência ponderada; substitui Alta/Média/Baixa).
-  Back: novo agregador + `SkillAgregada`/`EstratoConsenso`. Front: visualização por
-  densidade. *(Opus)*
-- [ ] **Fatia 2** — Tela de escolha de fluxo + limites 3–8 (validados no backend) +
-  entrada por fluxo. *(Sonnet)*
+- [x] **Fatia 1** — Nova agregação e apresentação de skills (substitui Alta/Média/Baixa).
+  - **Back:** `AgregadorDeSkills` (substitui `SkillPriorityCalculator`) + records
+    `SkillAgregada` e enum `EstratoConsenso`; removidos `SkillPriorityCalculator`
+    e `SkillPrioridade`. Ordenação por **peso = frequencia + obrigatoriaEm**
+    (desempate freq → obrig → nome). Estratos por presença: **≥80%
+    `PRATICAMENTE_TODAS`, 40–80% `FREQUENTE`, <40% `PONTUAL`**. `AnaliseVagasResponse`
+    e `AnaliseCompletaResponse` migrados para `SkillAgregada`. `Prioridade` mantido
+    (usado por `RoadmapService`, migra na Fatia 5).
+  - **Front:** `lib/skills.ts` (`rotuloEstrato` → "Ultra/Muito/Pouco requisitadas",
+    `rotuloTipo`, `rotuloFrequencia`); `VisualizacaoDeSkills` reescrita; novos
+    `EstratoDeSkills` + `ItemDeSkill` (3 formatos por proeminência decrescente:
+    **linhas sólidas / linhas com barra de frequência / chips**; barra só no estrato
+    do meio, onde 40–80% varia); `GrupoDeSkills` removido. Fato bruto por skill
+    ("Java · 4/4 vagas · sempre obrigatória"), nada escondido.
+  - Testes: `AgregadorDeSkillsTest` (6, fronteiras 80/40, peso, empates, N=1, vazio);
+    ajustados os testes de serviço/controller. **Backend 62 verdes.** Front:
+    `skills.test`, `ItemDeSkill.test`, `EstratoDeSkills.test`, `VisualizacaoDeSkills.test`
+    reescritos. **Frontend 51 verdes**, tsc/lint/build OK. *(Opus)*
+- [x] **Fatia 2** — Tela de escolha de fluxo + limites 3–8 + rotas por fluxo.
+  - **Back:** limite 3–8 vagas adicionado em `POST /api/skills/analyze` (bean
+    validation `@Size` em `AnalisarVagasRequest`) e `POST /api/analise/completa`
+    (validação manual no controller → `VagasForaDoLimiteException` → 400). Handler
+    adicionado ao `GlobalExceptionHandler`. Ambos retornam `{"error":"Envie entre
+    3 e 8 descrições de vaga."}` quando fora do range.
+  - **Front:** `page.tsx` substituída por tela de escolha com 5 `CartaoDeFluxo`
+    (01–03 clicáveis, 04–05 "em breve"). Rotas `/fluxo/mercado` (opção 2, completa
+    com limite 3–8 comunicado e botão bloqueado até o mínimo), `/fluxo/esta-vaga` e
+    `/fluxo/minha-posicao` (stubs para Fatias 3 e 4). `useAnaliseDeVagas` aceita
+    `{ minimoVagas, maximoVagas }`; guard de máximo dentro do updater funcional
+    (evita stale closure). `EntradaDeVagas` mostra contador `N/max vagas`, hint
+    "adicione mais N vagas", desabilita "Adicionar" no limite e esconde "Analisar"
+    até o mínimo.
+  - Testes: `AnalysisControllerTest` e `AnaliseControllerTest` atualizados para
+    3 vagas + casos de 2 e 9 vagas (→ 400). `CartaoDeFluxo.test` (6), `page.test`
+    (5, reescrito), `MercadoPage.test` (4), `useAnaliseDeVagas.test` (+2),
+    `EntradaDeVagas.test` (+4). **Back: 65 verdes. Front: 69 verdes**, tsc/build OK.
+    *(Sonnet)*
 - [ ] **Fatia 3** — Opção 1 (1 vaga + CV): gap por tipo, ATS direcionado, sugestões
   em duas frentes. *(Opus)*
 - [ ] **Fatia 4** — Opção 3 (3–8 + CV): gap-first, sinergia, ATS por segmento (novo). *(Opus)*

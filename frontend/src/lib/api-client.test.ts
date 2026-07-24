@@ -107,7 +107,7 @@ describe('api-client', () => {
     it('retorna a resposta de análise em sucesso', async () => {
       const resposta = {
         totalVagas: 1,
-        skills: [{ nome: 'Java', frequencia: 1, obrigatoriaEm: 1, percentual: 100, prioridade: 'ALTA' }],
+        skills: [{ nome: 'Java', frequencia: 1, obrigatoriaEm: 1, percentual: 100, estrato: 'PRATICAMENTE_TODAS' }],
       };
       mockFetch.mockResolvedValueOnce({ ok: true, json: async () => resposta });
 

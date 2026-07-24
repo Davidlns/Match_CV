@@ -11,9 +11,9 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
+import com.david.matchcv.domain.AgregadorDeSkills;
 import com.david.matchcv.domain.GapAnalyzer;
 import com.david.matchcv.domain.SkillExtraida;
-import com.david.matchcv.domain.SkillPriorityCalculator;
 import com.david.matchcv.domain.SinergiaVaga;
 import com.david.matchcv.dto.AnaliseCompletaResponse;
 import com.david.matchcv.exception.AiException;
@@ -26,10 +26,10 @@ class AnaliseCompletaServiceTest {
 
     private final SkillExtractionService skillExtractionService = mock(SkillExtractionService.class);
     private final CvAnalysisService cvAnalysisService = mock(CvAnalysisService.class);
-    // SkillPriorityCalculator e GapAnalyzer são lógica pura — usamos as instâncias reais.
+    // AgregadorDeSkills e GapAnalyzer são lógica pura — usamos as instâncias reais.
     private final AnaliseCompletaService service = new AnaliseCompletaService(
             skillExtractionService,
-            new SkillPriorityCalculator(),
+            new AgregadorDeSkills(),
             cvAnalysisService,
             new GapAnalyzer());
 

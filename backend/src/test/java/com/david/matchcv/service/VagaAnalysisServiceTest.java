@@ -10,10 +10,10 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
-import com.david.matchcv.domain.Prioridade;
+import com.david.matchcv.domain.AgregadorDeSkills;
+import com.david.matchcv.domain.EstratoConsenso;
+import com.david.matchcv.domain.SkillAgregada;
 import com.david.matchcv.domain.SkillExtraida;
-import com.david.matchcv.domain.SkillPrioridade;
-import com.david.matchcv.domain.SkillPriorityCalculator;
 import com.david.matchcv.exception.AiException;
 
 import org.junit.jupiter.api.Test;
@@ -21,9 +21,9 @@ import org.junit.jupiter.api.Test;
 class VagaAnalysisServiceTest {
 
     private final SkillExtractionService skillExtractionService = mock(SkillExtractionService.class);
-    // Calculadora real: é lógica pura, não precisa de mock.
+    // Agregador real: é lógica pura, não precisa de mock.
     private final VagaAnalysisService service =
-            new VagaAnalysisService(skillExtractionService, new SkillPriorityCalculator());
+            new VagaAnalysisService(skillExtractionService, new AgregadorDeSkills());
 
     @Test
     void deveAgregarSkillsDeVariasVagas() {
@@ -32,12 +32,12 @@ class VagaAnalysisServiceTest {
         when(skillExtractionService.extrairSkills("vaga2")).thenReturn(List.of(
                 new SkillExtraida("Java", OBRIGATORIA)));
 
-        List<SkillPrioridade> resultado = service.analisar(List.of("vaga1", "vaga2"));
+        List<SkillAgregada> resultado = service.analisar(List.of("vaga1", "vaga2"));
 
-        // Java: obrigatória em 2/2 (100%) -> ALTA. Docker: presente em 1/2 (50%) -> MEDIA.
+        // Java: 2/2 (100%) -> PRATICAMENTE_TODAS. Docker: 1/2 (50%) -> FREQUENTE.
         assertThat(resultado).containsExactly(
-                new SkillPrioridade("Java", 2, 2, 100, Prioridade.ALTA),
-                new SkillPrioridade("Docker", 1, 0, 50, Prioridade.MEDIA)
+                new SkillAgregada("Java", 2, 2, 100, EstratoConsenso.PRATICAMENTE_TODAS),
+                new SkillAgregada("Docker", 1, 0, 50, EstratoConsenso.FREQUENTE)
         );
     }
 

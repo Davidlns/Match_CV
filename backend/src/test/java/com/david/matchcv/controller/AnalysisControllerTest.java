@@ -8,8 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
-import com.david.matchcv.domain.Prioridade;
-import com.david.matchcv.domain.SkillPrioridade;
+import com.david.matchcv.domain.EstratoConsenso;
+import com.david.matchcv.domain.SkillAgregada;
 import com.david.matchcv.exception.AiException;
 import com.david.matchcv.service.VagaAnalysisService;
 
@@ -32,32 +32,18 @@ class AnalysisControllerTest {
     @Test
     void deveRetornar200ComAnaliseNoSucesso() throws Exception {
         when(vagaAnalysisService.analisar(anyList())).thenReturn(List.of(
-                new SkillPrioridade("Java", 2, 2, 100, Prioridade.ALTA)
+                new SkillAgregada("Java", 3, 3, 100, EstratoConsenso.PRATICAMENTE_TODAS)
         ));
 
         mockMvc.perform(post("/api/skills/analyze")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"descricoesVagas\":[\"vaga A\",\"vaga B\"]}"))
+                        .content("{\"descricoesVagas\":[\"vaga A\",\"vaga B\",\"vaga C\"]}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalVagas").value(2))
+                .andExpect(jsonPath("$.totalVagas").value(3))
                 .andExpect(jsonPath("$.skills[0].nome").value("Java"))
-                .andExpect(jsonPath("$.skills[0].obrigatoriaEm").value(2))
+                .andExpect(jsonPath("$.skills[0].obrigatoriaEm").value(3))
                 .andExpect(jsonPath("$.skills[0].percentual").value(100))
-                .andExpect(jsonPath("$.skills[0].prioridade").value("ALTA"));
-    }
-
-    @Test
-    void deveFuncionarComUmaVaga() throws Exception {
-        when(vagaAnalysisService.analisar(anyList())).thenReturn(List.of(
-                new SkillPrioridade("Java", 1, 1, 100, Prioridade.ALTA)
-        ));
-
-        mockMvc.perform(post("/api/skills/analyze")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"descricoesVagas\":[\"vaga unica\"]}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalVagas").value(1))
-                .andExpect(jsonPath("$.skills[0].prioridade").value("ALTA"));
+                .andExpect(jsonPath("$.skills[0].estrato").value("PRATICAMENTE_TODAS"));
     }
 
     @Test
@@ -70,13 +56,32 @@ class AnalysisControllerTest {
     }
 
     @Test
+    void deveRetornar400QuandoMenosDeTresVagas() throws Exception {
+        mockMvc.perform(post("/api/skills/analyze")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"descricoesVagas\":[\"vaga A\",\"vaga B\"]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Envie entre 3 e 8 descrições de vaga."));
+    }
+
+    @Test
+    void deveRetornar400QuandoMaisDeOitoVagas() throws Exception {
+        String noveVagas = "[\"v1\",\"v2\",\"v3\",\"v4\",\"v5\",\"v6\",\"v7\",\"v8\",\"v9\"]";
+        mockMvc.perform(post("/api/skills/analyze")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"descricoesVagas\":" + noveVagas + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Envie entre 3 e 8 descrições de vaga."));
+    }
+
+    @Test
     void deveRetornar503QuandoAIaFalha() throws Exception {
         when(vagaAnalysisService.analisar(anyList()))
                 .thenThrow(new AiException("falha", new RuntimeException()));
 
         mockMvc.perform(post("/api/skills/analyze")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"descricoesVagas\":[\"vaga A\"]}"))
+                        .content("{\"descricoesVagas\":[\"vaga A\",\"vaga B\",\"vaga C\"]}"))
                 .andExpect(status().isServiceUnavailable());
     }
 }

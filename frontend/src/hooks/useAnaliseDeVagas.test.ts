@@ -106,4 +106,32 @@ describe('useAnaliseDeVagas', () => {
     expect(mockAnalisarVagas).not.toHaveBeenCalled();
     expect(result.current.estado).toBe('ocioso');
   });
+
+  it('não chama a API se o mínimo de vagas não foi atingido', async () => {
+    const { result } = renderHook(() => useAnaliseDeVagas({ minimoVagas: 3 }));
+
+    act(() => {
+      result.current.adicionarVaga('Vaga 1');
+      result.current.adicionarVaga('Vaga 2');
+    });
+
+    await act(async () => {
+      await result.current.analisar();
+    });
+
+    expect(mockAnalisarVagas).not.toHaveBeenCalled();
+    expect(result.current.estado).toBe('ocioso');
+  });
+
+  it('não adiciona vaga além do máximo configurado', () => {
+    const { result } = renderHook(() => useAnaliseDeVagas({ maximoVagas: 2 }));
+
+    act(() => {
+      result.current.adicionarVaga('Vaga 1');
+      result.current.adicionarVaga('Vaga 2');
+      result.current.adicionarVaga('Vaga 3'); // deve ser ignorada
+    });
+
+    expect(result.current.vagas).toHaveLength(2);
+  });
 });

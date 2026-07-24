@@ -3,7 +3,12 @@ import { api, ApiError, type AnaliseVagasResposta } from '@/lib/api-client';
 
 type Estado = 'ocioso' | 'analisando' | 'pronto' | 'erro';
 
-export function useAnaliseDeVagas() {
+type Config = {
+  minimoVagas?: number;
+  maximoVagas?: number;
+};
+
+export function useAnaliseDeVagas({ minimoVagas = 1, maximoVagas }: Config = {}) {
   const [vagas, setVagas] = useState<string[]>([]);
   const [resultado, setResultado] = useState<AnaliseVagasResposta | null>(null);
   const [estado, setEstado] = useState<Estado>('ocioso');
@@ -12,7 +17,10 @@ export function useAnaliseDeVagas() {
   function adicionarVaga(descricao: string) {
     const trimada = descricao.trim();
     if (!trimada) return;
-    setVagas((prev) => [...prev, trimada]);
+    setVagas((prev) => {
+      if (maximoVagas !== undefined && prev.length >= maximoVagas) return prev;
+      return [...prev, trimada];
+    });
   }
 
   function removerVaga(indice: number) {
@@ -22,7 +30,7 @@ export function useAnaliseDeVagas() {
   }
 
   async function analisar() {
-    if (vagas.length === 0) return;
+    if (vagas.length < minimoVagas) return;
     setEstado('analisando');
     setErroMsg('');
     try {
@@ -35,5 +43,5 @@ export function useAnaliseDeVagas() {
     }
   }
 
-  return { vagas, adicionarVaga, removerVaga, resultado, estado, erroMsg, analisar };
+  return { vagas, adicionarVaga, removerVaga, resultado, estado, erroMsg, analisar, minimoVagas, maximoVagas };
 }
